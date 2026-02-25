@@ -1,99 +1,469 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 160 22% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 160 22% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 160 22% 12%;
-    --primary: 161 59% 23%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 120 5% 96%;
-    --secondary-foreground: 160 22% 12%;
-    --muted: 120 5% 96%;
-    --muted-foreground: 150 10% 48%;
-    --accent: 17 51% 46%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 63% 44%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 120 4% 89%;
-    --input: 120 4% 82%;
-    --ring: 161 59% 23%;
-    --chart-1: 161 59% 23%;
-    --chart-2: 17 51% 46%;
-    --chart-3: 216 71% 46%;
-    --chart-4: 150 10% 58%;
-    --chart-5: 0 63% 44%;
-    --radius: 0.625rem;
-  }
-  .dark {
-    --background: 155 25% 7%;
-    --foreground: 150 12% 92%;
-    --card: 155 20% 10%;
-    --card-foreground: 150 12% 92%;
-    --popover: 155 20% 10%;
-    --popover-foreground: 150 12% 92%;
-    --primary: 145 66% 51%;
-    --primary-foreground: 155 25% 7%;
-    --secondary: 155 18% 14%;
-    --secondary-foreground: 150 12% 92%;
-    --muted: 155 18% 14%;
-    --muted-foreground: 150 12% 40%;
-    --accent: 17 60% 61%;
-    --accent-foreground: 155 25% 7%;
-    --destructive: 0 65% 70%;
-    --destructive-foreground: 155 25% 7%;
-    --border: 155 18% 16%;
-    --input: 155 18% 18%;
-    --ring: 145 66% 51%;
-    --chart-1: 145 66% 51%;
-    --chart-2: 17 60% 61%;
-    --chart-3: 216 80% 65%;
-    --chart-4: 150 12% 52%;
-    --chart-5: 0 65% 70%;
-  }
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   HEALTHLUMA — Medical Design System v1.0
+   Canopy · Calm · Clinical Authority
+   ============================================ */
+
+@theme inline {
+  /* --- Core shadcn mappings --- */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* --- Sidebar --- */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* --- Chart (shadcn-compatible, 1–5) --- */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* --- Radius --- */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* ==========================================
+     HEALTHLUMA DESIGN TOKENS — Tailwind Utilities
+     Usage: bg-vault-bg-primary, text-vault-text-primary, etc.
+     ========================================== */
+
+  /* Surfaces & Backgrounds */
+  --color-vault-bg-primary: var(--vault-bg-primary);
+  --color-vault-bg-secondary: var(--vault-bg-secondary);
+  --color-vault-bg-tertiary: var(--vault-bg-tertiary);
+  --color-vault-bg-elevated: var(--vault-bg-elevated);
+
+  /* Brand */
+  --color-vault-navy: var(--vault-brand-primary);
+  --color-vault-forest: var(--vault-brand-secondary);
+  --color-vault-gold: var(--vault-brand-accent);
+
+  /* Text */
+  --color-vault-text-primary: var(--vault-text-primary);
+  --color-vault-text-secondary: var(--vault-text-secondary);
+  --color-vault-text-tertiary: var(--vault-text-tertiary);
+  --color-vault-text-inverse: var(--vault-text-inverse);
+
+  /* Borders */
+  --color-vault-border-default: var(--vault-border-default);
+  --color-vault-border-subtle: var(--vault-border-subtle);
+  --color-vault-border-strong: var(--vault-border-strong);
+
+  /* Interactive */
+  --color-vault-hover: var(--vault-interactive-hover);
+  --color-vault-focus: var(--vault-interactive-focus);
+  --color-vault-selected: var(--vault-interactive-selected);
+
+  /* Semantic — Status */
+  --color-vault-positive: var(--vault-positive);
+  --color-vault-positive-light: var(--vault-positive-light);
+  --color-vault-negative: var(--vault-negative);
+  --color-vault-negative-light: var(--vault-negative-light);
+  --color-vault-warning: var(--vault-warning);
+  --color-vault-warning-light: var(--vault-warning-light);
+  --color-vault-info: var(--vault-info);
+  --color-vault-info-light: var(--vault-info-light);
+
+  /* Profit / Loss */
+  --color-vault-profit-text: var(--vault-profit-text);
+  --color-vault-profit-bg: var(--vault-profit-bg);
+  --color-vault-loss-text: var(--vault-loss-text);
+  --color-vault-loss-bg: var(--vault-loss-bg);
+
+  /* Chart & Data Visualization (extended, 1–8) */
+  --color-vault-chart-1: var(--vault-chart-1);
+  --color-vault-chart-2: var(--vault-chart-2);
+  --color-vault-chart-3: var(--vault-chart-3);
+  --color-vault-chart-4: var(--vault-chart-4);
+  --color-vault-chart-5: var(--vault-chart-5);
+  --color-vault-chart-6: var(--vault-chart-6);
+  --color-vault-chart-7: var(--vault-chart-7);
+  --color-vault-chart-8: var(--vault-chart-8);
+
+  /* Chart Fills (translucent) */
+  --color-vault-chart-fill-1: var(--vault-chart-fill-1);
+  --color-vault-chart-fill-2: var(--vault-chart-fill-2);
+  --color-vault-chart-fill-3: var(--vault-chart-fill-3);
+  --color-vault-chart-fill-4: var(--vault-chart-fill-4);
+
+  /* Tooltip & Overlay */
+  --color-vault-tooltip-bg: var(--vault-tooltip-bg);
+  --color-vault-tooltip-text: var(--vault-tooltip-text);
+  --color-vault-overlay: var(--vault-overlay-bg);
 }
 
-@layer base {
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   HEALTHLUMA — Palette 3: Daylight & Forest
-   Pure white · Forest green #185C45 · Terracotta #B85C3C
-   Green-tinted shadows throughout
-══════════════════════════════════════════════════════════════════ */
-
+/* ============================================
+   LIGHT THEME (default)
+   ============================================ */
 :root {
-  --hl-bg:             #FFFFFF;
-  --hl-bg-secondary:   #F6F7F6;
-  --hl-bg-card:        #FFFFFF;
-  --hl-text-primary:   #162920;
-  --hl-text-secondary: #476355;
-  --hl-text-muted:     #7C9488;
-  --hl-forest:         #185C45;
-  --hl-forest-dark:    #134E3A;
-  --hl-forest-soft:    #E2F0EA;
-  --hl-forest-muted:   #F0F7F3;
-  --hl-terra:          #B85C3C;
-  --hl-terra-soft:     #FBF0EB;
-  --hl-border:         #E4E6E4;
-  --hl-border-strong:  #D0D4D1;
-  --hl-shadow-xs:      0 1px 2px rgba(22,41,32,0.05);
-  --hl-shadow-sm:      0 1px 3px rgba(22,41,32,0.07), 0 1px 2px rgba(22,41,32,0.04);
-  --hl-shadow-md:      0 4px 8px rgba(22,41,32,0.06), 0 2px 4px rgba(22,41,32,0.03);
-  --hl-shadow-lg:      0 12px 24px rgba(22,41,32,0.08), 0 4px 8px rgba(22,41,32,0.04);
-  --hl-shadow-xl:      0 20px 40px rgba(22,41,32,0.10);
+  --radius: 0.625rem;
+
+  /* ── shadcn core ──────────────────────────── */
+  /* Page base: barely-green white. Not pure     */
+  /* white — reduces eye strain, feels crafted.  */
+  --background: #FAFCFA;
+  --foreground: #162920;  /* N-900 — 15.6:1 on bg */
+
+  --card: #FFFFFF;
+  --card-foreground: #162920;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #162920;
+
+  /* Canopy Green — 7.9:1 on white (WCAG AAA)   */
+  --primary: #1A5C44;
+  --primary-foreground: #FFFFFF;
+
+  /* Mist — barely-green secondary surface       */
+  --secondary: #EEF2EF;
+  --secondary-foreground: #2A3C2F;
+
+  --muted: #EEF2EF;
+  --muted-foreground: #637065;  /* 5.0:1 on bg — AA */
+
+  /* Clay terracotta — 4.6:1 on white (WCAG AA)  */
+  --accent: #B05A3A;
+  --accent-foreground: #FFFFFF;
+
+  /* Muted crimson — 6.5:1 on white (WCAG AA)   */
+  --destructive: #A82E2E;
+
+  /* Green-tinted neutrals for border/input      */
+  --border: #D8DED9;
+  --input:  #D8DED9;
+  --ring:   #1A5C44;
+
+  /* ── Charts (shadcn 1–5) ─────────────────── */
+  /* Max 5 per chart. Each hue is perceptually   */
+  /* distinct — no two are in the same family.   */
+  --chart-1: #1A5C44;  /* Canopy — primary metric     */
+  --chart-2: #B05A3A;  /* Clay — secondary metric     */
+  --chart-3: #2C5F8A;  /* Steel — tertiary            */
+  --chart-4: #7A5410;  /* Amber — quaternary          */
+  --chart-5: #637065;  /* Muted — baseline/reference  */
+
+  /* ── Sidebar ─────────────────────────────── */
+  /* Slightly off-white, not white — sidebar     */
+  /* should recede, not compete with content.    */
+  --sidebar: #F2F5F2;
+  --sidebar-foreground: #2A3C2F;
+  --sidebar-primary: #1A5C44;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E5EDE7;
+  --sidebar-accent-foreground: #1A5C44;
+  --sidebar-border: #D8DED9;
+  --sidebar-ring: #1A5C44;
+
+  /* ── HEALTHLUMA DESIGN TOKENS ────────────── */
+
+  /* Surfaces & Backgrounds */
+  --vault-bg-primary:  #FAFCFA;
+  --vault-bg-secondary: #F2F5F2;
+  --vault-bg-tertiary: #E8EDE9;
+  --vault-bg-elevated: #FFFFFF;
+
+  /* Brand */
+  --vault-brand-primary:   #1A5C44;  /* Canopy Green */
+  --vault-brand-secondary: #154D3A;  /* Canopy Dark  */
+  --vault-brand-accent:    #B05A3A;  /* Clay         */
+
+  /* Text Hierarchy */
+  --vault-text-primary:   #162920;  /* N-900 — 15.6:1 */
+  --vault-text-secondary: #435448;  /* N-700 — 8.2:1  */
+  --vault-text-tertiary:  #637065;  /* N-600 — 5.0:1  */
+  --vault-text-inverse:   #FAFCFA;
+
+  /* Borders */
+  --vault-border-default: #D8DED9;  /* N-300 */
+  --vault-border-subtle:  #E8EDE9;  /* N-200 */
+  --vault-border-strong:  #BEC6BF;  /* N-400 */
+
+  /* Interactive States */
+  --vault-interactive-hover:    #F2F5F2;
+  --vault-interactive-focus:    #1A5C44;
+  --vault-interactive-selected: rgba(26, 92, 68, 0.08);
+
+  /* Semantic — Status */
+  /* Success: distinct from primary. Bluer-green */
+  /* reads "confirmed" not "navigate here".      */
+  --vault-positive:       #17704A;
+  --vault-positive-light: #E7F5EF;
+
+  /* Error: muted crimson — serious, not panic   */
+  --vault-negative:       #A82E2E;
+  --vault-negative-light: #FAECEC;
+
+  /* Warning: warm amber, not orange             */
+  --vault-warning:        #7A5410;
+  --vault-warning-light:  #FEF7E8;
+
+  /* Info: only blue in the system — educational */
+  --vault-info:           #2C5F8A;
+  --vault-info-light:     #EBF3FA;
+
+  /* Profit / Loss */
+  --vault-profit-text: #17704A;
+  --vault-profit-bg:   #E7F5EF;
+  --vault-loss-text:   #A82E2E;
+  --vault-loss-bg:     #FAECEC;
+
+  /* Chart & Data Visualization (1–8) */
+  --vault-chart-1: #1A5C44;  /* Canopy        */
+  --vault-chart-2: #B05A3A;  /* Clay          */
+  --vault-chart-3: #2C5F8A;  /* Steel Blue    */
+  --vault-chart-4: #A82E2E;  /* Muted Crimson */
+  --vault-chart-5: #8E9B8F;  /* N-500 Muted   */
+  --vault-chart-6: #435448;  /* N-700 Deep    */
+  --vault-chart-7: #8B7050;  /* Warm Earth    */
+  --vault-chart-8: #4F8A7A;  /* Soft Teal     */
+
+  /* Chart Fills (translucent area fills) */
+  --vault-chart-fill-1: rgba(26, 92, 68, 0.12);
+  --vault-chart-fill-2: rgba(176, 90, 58, 0.15);
+  --vault-chart-fill-3: rgba(44, 95, 138, 0.12);
+  --vault-chart-fill-4: rgba(168, 46, 46, 0.12);
+
+  /* Tooltip & Overlay */
+  --vault-tooltip-bg:   #1A5C44;
+  --vault-tooltip-text: #F2F5F2;
+  --vault-overlay-bg:   rgba(22, 41, 32, 0.50);
 }
 
-/* ─── Keyframes ──────────────────────────────────────────────── */
+/* ============================================
+   DARK THEME
+   Forest-tinted dark — not true black,
+   not generic slate. #0D1A12 carries a
+   barely-visible green cast (H≈148°, L≈8%)
+   that ties dark mode to the brand without
+   announcing itself. Consistent hue family
+   across modes builds clinical trust.
+   ============================================ */
+.dark {
+  /* --- shadcn core variables — dark Vault --- */
+  --background: #111820;
+  --foreground: #E8E5DE;
+
+  --card: #1A2332;
+  --card-foreground: #E8E5DE;
+
+  --popover: #1A2332;
+  --popover-foreground: #E8E5DE;
+
+  --primary: #C4975A;
+  --primary-foreground: #111820;
+
+  --secondary: #1E2A3A;
+  --secondary-foreground: #E8E5DE;
+
+  --muted: #1E2A3A;
+  --muted-foreground: #8C919A;
+
+  --accent: #C4975A;
+  --accent-foreground: #111820;
+
+  --destructive: #D45B5B;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.10);
+  --ring: #C4975A;
+
+  /* Charts (shadcn 1-5) */
+  --chart-1: #5B8AB5;
+  --chart-2: #D4A96A;
+  --chart-3: #4D9A7F;
+  --chart-4: #D45B5B;
+  --chart-5: #9B8BAA;
+
+  /* Sidebar */
+  --sidebar: #141C28;
+  --sidebar-foreground: #E8E5DE;
+  --sidebar-primary: #C4975A;
+  --sidebar-primary-foreground: #111820;
+  --sidebar-accent: #1E2A3A;
+  --sidebar-accent-foreground: #E8E5DE;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #C4975A;
+
+  /* --- VAULT DESIGN TOKENS (dark) --- */
+
+  /* Surfaces & Backgrounds */
+  --vault-bg-primary: #111820;
+  --vault-bg-secondary: #1A2332;
+  --vault-bg-tertiary: #1E2A3A;
+  --vault-bg-elevated: #243244;
+
+  /* Brand */
+  --vault-brand-primary: #5B8AB5;
+  --vault-brand-secondary: #4D9A7F;
+  --vault-brand-accent: #D4A96A;
+
+  /* Text Hierarchy */
+  --vault-text-primary: #E8E5DE;
+  --vault-text-secondary: #A0A5AD;
+  --vault-text-tertiary: #6B7280;
+  --vault-text-inverse: #111820;
+
+  /* Borders */
+  --vault-border-default: rgba(255, 255, 255, 0.08);
+  --vault-border-subtle: rgba(255, 255, 255, 0.05);
+  --vault-border-strong: rgba(255, 255, 255, 0.15);
+
+  /* Interactive States */
+  --vault-interactive-hover: rgba(255, 255, 255, 0.05);
+  --vault-interactive-focus: #C4975A;
+  --vault-interactive-selected: rgba(196, 151, 90, 0.12);
+
+  /* Semantic — Status */
+  --vault-positive: #4D9A7F;
+  --vault-positive-light: rgba(45, 122, 95, 0.15);
+  --vault-negative: #D45B5B;
+  --vault-negative-light: rgba(181, 69, 69, 0.15);
+  --vault-warning: #D4A96A;
+  --vault-warning-light: rgba(196, 135, 90, 0.15);
+  --vault-info: #5B8AB5;
+  --vault-info-light: rgba(74, 127, 165, 0.15);
+
+  /* Profit / Loss */
+  --vault-profit-text: #5FBE96;
+  --vault-profit-bg: rgba(45, 122, 95, 0.15);
+  --vault-loss-text: #E87171;
+  --vault-loss-bg: rgba(181, 69, 69, 0.15);
+
+  /* Chart & Data Visualization (1–8) */
+  --vault-chart-1: #5B8AB5;
+  --vault-chart-2: #D4A96A;
+  --vault-chart-3: #4D9A7F;
+  --vault-chart-4: #D45B5B;
+  --vault-chart-5: #9B8BAA;
+  --vault-chart-6: #5B8AB5;
+  --vault-chart-7: #AB9375;
+  --vault-chart-8: #7AAA9A;
+
+  /* Chart Fills (translucent area fills) */
+  --vault-chart-fill-1: rgba(91, 138, 181, 0.15);
+  --vault-chart-fill-2: rgba(212, 169, 106, 0.15);
+  --vault-chart-fill-3: rgba(77, 154, 127, 0.15);
+  --vault-chart-fill-4: rgba(212, 91, 91, 0.15);
+
+  /* Tooltip & Overlay */
+  --vault-tooltip-bg: #243244;
+  --vault-tooltip-text: #E8E5DE;
+  --vault-overlay-bg: rgba(0, 0, 0, 0.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Sidebar active item — 2px left border indicator */
+  [data-sidebar="menu-button"][data-active="true"] {
+    border-left: 2px solid var(--sidebar-primary);
+    padding-left: calc(0.5rem - 2px);
+  }
+}
+
+/* ============================================
+   Staggered Reveal Animations
+   ============================================ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out both;
+  opacity: 0;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  opacity: 0;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ============================================
+   LANDING PAGE — HL Utility Classes
+   All colors derived from the HealthLuma
+   design system tokens above.
+   ============================================ */
+
+/* ─── Additional Keyframes ───────────────── */
 @keyframes fadeUpIn {
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -108,22 +478,22 @@
 }
 @keyframes typing-dot {
   0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
-  30%           { opacity: 1;   transform: scale(1);   }
+  30%           { opacity: 1;   transform: scale(1); }
 }
 @keyframes chat-border-pulse {
-  0%, 100% { border-color: rgba(24,92,69,0.15); }
-  50%       { border-color: rgba(24,92,69,0.3);
-              box-shadow: 0 0 20px rgba(22,41,32,0.04); }
+  0%, 100% { border-color: rgba(26, 92, 68, 0.15); }
+  50%       { border-color: rgba(26, 92, 68, 0.30);
+              box-shadow: 0 0 20px rgba(22, 41, 32, 0.04); }
 }
 @keyframes dot-glow {
-  0%, 100% { box-shadow: 0 0 4px rgba(24,92,69,0.45); }
-  50%       { box-shadow: 0 0 12px rgba(24,92,69,0.8); }
+  0%, 100% { box-shadow: 0 0 4px rgba(26, 92, 68, 0.45); }
+  50%       { box-shadow: 0 0 12px rgba(26, 92, 68, 0.80); }
 }
 
-/* ─── Base ───────────────────────────────────────────────────── */
+/* ─── Page & Container ───────────────────── */
 .hl-page {
-  background-color: var(--hl-bg);
-  color: var(--hl-text-primary);
+  background-color: #FAFCFA;
+  color: #162920;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   overflow-x: hidden;
 }
@@ -134,26 +504,26 @@
   padding: 0 24px;
 }
 
-/* ─── Sections ───────────────────────────────────────────────── */
-.hl-section-dark    { background: var(--hl-bg); }
-.hl-section-surface { background: var(--hl-bg-secondary); }
+/* ─── Sections ───────────────────────────── */
+.hl-section-dark    { background: #FAFCFA; }
+.hl-section-surface { background: #F2F5F2; }
 
-/* ─── Section Label ──────────────────────────────────────────── */
+/* ─── Section Label ──────────────────────── */
 .hl-section-label {
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--hl-forest);
+  color: #1A5C44;
   opacity: 0.75;
   display: block;
   margin-bottom: 14px;
 }
 
-/* ─── Buttons ────────────────────────────────────────────────── */
+/* ─── Buttons ────────────────────────────── */
 .hl-btn-primary {
-  background: var(--hl-forest);
+  background: #1A5C44;
   color: #FFFFFF;
   padding: 14px 32px;
   border-radius: 9999px;
@@ -164,20 +534,20 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(22,41,32,0.2);
+  box-shadow: 0 4px 14px rgba(22, 41, 32, 0.20);
   transition: background 0.2s, box-shadow 0.25s, transform 0.25s;
   border: none;
   cursor: pointer;
 }
 .hl-btn-primary:hover {
-  background: var(--hl-forest-dark);
-  box-shadow: 0 8px 26px rgba(22,41,32,0.3);
+  background: #154D3A;
+  box-shadow: 0 8px 26px rgba(22, 41, 32, 0.30);
   transform: translateY(-2px);
 }
 
 .hl-btn-secondary {
   background: transparent;
-  color: var(--hl-text-primary);
+  color: #162920;
   padding: 14px 32px;
   border-radius: 9999px;
   font-size: 15px;
@@ -187,45 +557,45 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1.5px solid var(--hl-border-strong);
+  border: 1.5px solid #BEC6BF;
   transition: border-color 0.25s, color 0.25s, background 0.25s;
   cursor: pointer;
 }
 .hl-btn-secondary:hover {
-  border-color: var(--hl-forest);
-  color: var(--hl-forest);
-  background: var(--hl-forest-muted);
+  border-color: #1A5C44;
+  color: #1A5C44;
+  background: #F2F5F2;
 }
 
-/* ─── Navbar ─────────────────────────────────────────────────── */
+/* ─── Navbar ─────────────────────────────── */
 .hl-nav-link {
-  color: var(--hl-text-secondary);
+  color: #435448;
   font-size: 14px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
 }
-.hl-nav-link:hover { color: var(--hl-text-primary); }
+.hl-nav-link:hover { color: #162920; }
 
 .hl-nav-login {
-  color: var(--hl-text-secondary);
+  color: #435448;
   font-size: 14px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
   font-weight: 500;
   padding: 8px 14px;
   border-radius: 9999px;
-  border: 1px solid var(--hl-border-strong);
+  border: 1px solid #BEC6BF;
   transition: border-color 0.2s, color 0.2s;
 }
 .hl-nav-login:hover {
-  border-color: rgba(24,92,69,0.4);
-  color: var(--hl-text-primary);
+  border-color: rgba(26, 92, 68, 0.40);
+  color: #162920;
 }
 
 .hl-nav-book {
-  background: var(--hl-forest);
+  background: #1A5C44;
   color: #FFFFFF;
   padding: 9px 20px;
   border-radius: 9999px;
@@ -233,13 +603,13 @@
   font-weight: 600;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
-  box-shadow: 0 2px 10px rgba(22,41,32,0.18);
+  box-shadow: 0 2px 10px rgba(22, 41, 32, 0.18);
   transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
   white-space: nowrap;
 }
 .hl-nav-book:hover {
-  background: var(--hl-forest-dark);
-  box-shadow: 0 4px 18px rgba(22,41,32,0.28);
+  background: #154D3A;
+  box-shadow: 0 4px 18px rgba(22, 41, 32, 0.28);
   transform: translateY(-1px);
 }
 
@@ -247,98 +617,99 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--hl-forest);
+  background: #1A5C44;
   display: inline-block;
   flex-shrink: 0;
   animation: dot-glow 2.5s ease-in-out infinite;
 }
 
-/* ─── Cards ──────────────────────────────────────────────────── */
+/* ─── Cards ──────────────────────────────── */
 .hl-card {
-  background: var(--hl-bg-card);
-  border: 1px solid var(--hl-border);
+  background: #FFFFFF;
+  border: 1px solid #D8DED9;
   border-radius: 20px;
   padding: 32px;
-  box-shadow: var(--hl-shadow-sm);
+  box-shadow: 0 1px 3px rgba(22, 41, 32, 0.07), 0 1px 2px rgba(22, 41, 32, 0.04);
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
 }
 .hl-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--hl-shadow-lg);
-  border-color: rgba(24,92,69,0.2);
+  box-shadow: 0 12px 24px rgba(22, 41, 32, 0.08), 0 4px 8px rgba(22, 41, 32, 0.04);
+  border-color: rgba(26, 92, 68, 0.20);
 }
 
 .hl-problem-card {
-  background: var(--hl-bg-card);
-  border: 1px solid var(--hl-border);
+  background: #FFFFFF;
+  border: 1px solid #D8DED9;
   border-radius: 16px;
   padding: 28px;
-  box-shadow: var(--hl-shadow-xs);
+  box-shadow: 0 1px 2px rgba(22, 41, 32, 0.05);
 }
 
 .hl-card-standard {
-  background: var(--hl-bg-card);
-  border: 1px solid var(--hl-border);
+  background: #FFFFFF;
+  border: 1px solid #D8DED9;
   border-radius: 24px;
   padding: 40px;
   position: relative;
-  box-shadow: var(--hl-shadow-sm);
+  box-shadow: 0 1px 3px rgba(22, 41, 32, 0.07), 0 1px 2px rgba(22, 41, 32, 0.04);
   transition: transform 0.3s, box-shadow 0.3s;
   height: 100%;
   box-sizing: border-box;
 }
 .hl-card-standard:hover {
   transform: translateY(-3px);
-  box-shadow: var(--hl-shadow-md);
+  box-shadow: 0 4px 8px rgba(22, 41, 32, 0.06), 0 2px 4px rgba(22, 41, 32, 0.03);
 }
 
 .hl-card-pro {
-  background: var(--hl-bg-card);
-  border: 1.5px solid rgba(24,92,69,0.22);
+  background: #FFFFFF;
+  border: 1.5px solid rgba(26, 92, 68, 0.22);
   border-radius: 24px;
   padding: 40px;
   position: relative;
-  box-shadow: 0 0 48px rgba(22,41,32,0.05), 0 16px 40px rgba(22,41,32,0.08);
+  box-shadow: 0 0 48px rgba(22, 41, 32, 0.05), 0 16px 40px rgba(22, 41, 32, 0.08);
   transition: transform 0.3s, box-shadow 0.3s;
   height: 100%;
   box-sizing: border-box;
 }
 .hl-card-pro:hover {
   transform: translateY(-4px);
-  box-shadow: 0 0 64px rgba(22,41,32,0.07), 0 24px 56px rgba(22,41,32,0.12);
+  box-shadow: 0 0 64px rgba(22, 41, 32, 0.07), 0 24px 56px rgba(22, 41, 32, 0.12);
 }
 
 .hl-review-card {
-  background: var(--hl-bg-card);
-  border: 1px solid var(--hl-border);
+  background: #FFFFFF;
+  border: 1px solid #D8DED9;
   border-radius: 20px;
   padding: 32px;
   display: flex;
   flex-direction: column;
   height: 100%;
-  box-shadow: var(--hl-shadow-sm);
+  box-shadow: 0 1px 3px rgba(22, 41, 32, 0.07), 0 1px 2px rgba(22, 41, 32, 0.04);
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
   box-sizing: border-box;
 }
 .hl-review-card:hover {
-  border-color: rgba(24,92,69,0.2);
+  border-color: rgba(26, 92, 68, 0.20);
   transform: translateY(-2px);
-  box-shadow: var(--hl-shadow-md);
+  box-shadow: 0 4px 8px rgba(22, 41, 32, 0.06), 0 2px 4px rgba(22, 41, 32, 0.03);
 }
 
-/* ─── Animations ─────────────────────────────────────────────── */
+/* ─── Floating & Chat Animations ─────────── */
 .hl-float-a { animation: float-a 7s ease-in-out infinite; }
 .hl-float-b { animation: float-b 9s ease-in-out infinite 0.5s; }
 
 .hl-chat-card {
-  border: 1px solid rgba(24,92,69,0.15);
+  border: 1px solid rgba(26, 92, 68, 0.15);
   animation: chat-border-pulse 4s ease-in-out infinite;
 }
 
-.hl-typing-dot-1 { animation: typing-dot 1.2s ease-in-out infinite 0s; }
+.hl-typing-dot-1 { animation: typing-dot 1.2s ease-in-out infinite 0.0s; }
 .hl-typing-dot-2 { animation: typing-dot 1.2s ease-in-out infinite 0.2s; }
 .hl-typing-dot-3 { animation: typing-dot 1.2s ease-in-out infinite 0.4s; }
 
+/* ─── Staggered Reveal ───────────────────── */
 .hl-fade-1 { opacity:0; animation: fadeUpIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s forwards; }
 .hl-fade-2 { opacity:0; animation: fadeUpIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.4s forwards; }
 .hl-fade-3 { opacity:0; animation: fadeUpIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s forwards; }
@@ -346,38 +717,38 @@
 .hl-fade-5 { opacity:0; animation: fadeUpIn 0.8s cubic-bezier(0.16,1,0.3,1) 1.0s forwards; }
 .hl-fade-6 { opacity:0; animation: fadeUpIn 0.8s cubic-bezier(0.16,1,0.3,1) 1.3s forwards; }
 
-/* ─── Slider ─────────────────────────────────────────────────── */
+/* ─── Range Slider ───────────────────────── */
 input[type="range"].hl-slider {
   -webkit-appearance: none; appearance: none;
   width: 100%; height: 4px; border-radius: 2px;
-  background: var(--hl-border); outline: none; cursor: pointer;
+  background: #D8DED9; outline: none; cursor: pointer;
 }
 input[type="range"].hl-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px; height: 20px; border-radius: 50%;
-  background: var(--hl-forest);
-  box-shadow: 0 0 8px rgba(22,41,32,0.25);
+  background: #1A5C44;
+  box-shadow: 0 0 8px rgba(22, 41, 32, 0.25);
   cursor: pointer; border: 2px solid #FFFFFF;
 }
 input[type="range"].hl-slider::-moz-range-thumb {
   width: 20px; height: 20px; border-radius: 50%;
-  background: var(--hl-forest);
-  box-shadow: 0 0 8px rgba(22,41,32,0.25);
+  background: #1A5C44;
+  box-shadow: 0 0 8px rgba(22, 41, 32, 0.25);
   cursor: pointer; border: 2px solid #FFFFFF;
 }
 
-/* ─── Footer Links ───────────────────────────────────────────── */
+/* ─── Footer Links ───────────────────────── */
 .hl-footer-link {
-  color: var(--hl-text-muted);
+  color: #637065;
   text-decoration: none;
   font-size: 14px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   transition: color 0.2s;
 }
-.hl-footer-link:hover { color: var(--hl-forest); }
+.hl-footer-link:hover { color: #1A5C44; }
 
 .hl-footer-legal-link {
-  color: var(--hl-text-muted);
+  color: #637065;
   opacity: 0.65;
   font-size: 12px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
@@ -386,14 +757,14 @@ input[type="range"].hl-slider::-moz-range-thumb {
 }
 .hl-footer-legal-link:hover { opacity: 1; }
 
-/* ─── Principles ─────────────────────────────────────────────── */
+/* ─── Principle Row ──────────────────────── */
 .hl-principle {
   padding: 20px 0;
-  border-bottom: 1px solid var(--hl-border);
+  border-bottom: 1px solid #D8DED9;
 }
 .hl-principle:last-child { border-bottom: none; }
 
-/* ─── Responsive ─────────────────────────────────────────────── */
+/* ─── Responsive ─────────────────────────── */
 @media (max-width: 900px) {
   .hl-hero-grid  { grid-template-columns: 1fr !important; }
   .hl-hero-cards { display: none !important; }

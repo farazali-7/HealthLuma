@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Wallet,
-  ArrowLeftRight,
-  Landmark,
-  BarChart3,
+  Calendar,
+  Pill,
+  FlaskConical,
+  FileText,
+  MessageCircle,
   Settings,
   LogOut,
   ChevronsUpDown,
+  Heart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,11 +38,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/app/dashboard/context";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Accounts", href: "/dashboard/accounts", icon: Wallet },
-  { title: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
-  { title: "Liabilities", href: "/dashboard/liabilities", icon: Landmark },
-  { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Appointments", href: "/dashboard/appointments", icon: Calendar },
+  { title: "Medications", href: "/dashboard/medications", icon: Pill },
+  { title: "Lab Results", href: "/dashboard/labs", icon: FlaskConical },
+  { title: "Health Records", href: "/dashboard/records", icon: FileText },
+  { title: "Messages", href: "/dashboard/messages", icon: MessageCircle },
+];
+
+const navSecondary = [
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -52,7 +58,7 @@ export function AppSidebar() {
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
     user.email?.split("@")[0] ||
-    "User";
+    "Patient";
 
   const initials = displayName
     .split(" ")
@@ -69,17 +75,29 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      {/* ── Brand Header ────────────────────────────────── */}
+      <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton
+              size="lg"
+              asChild
+              className="hover:bg-transparent active:bg-transparent focus-visible:ring-0"
+            >
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <span className="text-sm font-bold">S</span>
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
+                  <Heart className="size-4 text-sidebar-primary-foreground" strokeWidth={2.5} />
                 </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Spendify</span>
-                  <span className="text-xs text-muted-foreground">Finance Manager</span>
+                <div className="flex flex-col gap-0 leading-tight">
+                  <span
+                    className="font-semibold tracking-tight text-sidebar-foreground"
+                    style={{ fontFamily: "var(--font-playfair)" }}
+                  >
+                    HealthLuma
+                  </span>
+                  <span className="text-[10px] text-sidebar-foreground/45">
+                    Family Practice
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -88,8 +106,11 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* ── Primary Navigation ──────────────────────── */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/40">
+            My Care
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
@@ -100,7 +121,16 @@ export function AppSidebar() {
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={
+                        isActive
+                          ? "hl-sidebar-active font-medium"
+                          : ""
+                      }
+                    >
                       <Link href={item.href}>
                         <item.icon />
                         <span>{item.title}</span>
@@ -112,9 +142,28 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Secondary Navigation ────────────────────── */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navSecondary.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      {/* ── User Footer ─────────────────────────────── */}
+      <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -123,43 +172,44 @@ export function AppSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                    <span className="text-xs font-semibold text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-primary/20 bg-sidebar-primary/10">
+                    <span className="text-xs font-semibold text-sidebar-primary">
                       {initials}
                     </span>
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{displayName}</span>
-                    <span className="truncate text-xs text-muted-foreground">
+                    <span className="truncate font-semibold text-sidebar-foreground">
+                      {displayName}
+                    </span>
+                    <span className="truncate text-[11px] text-sidebar-foreground/50">
                       {user.email}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
+                  <ChevronsUpDown className="ml-auto size-4 text-sidebar-foreground/40" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl"
                 side="bottom"
                 align="end"
                 sideOffset={4}
               >
-                <div className="flex items-center gap-2 px-2 py-1.5">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                    <span className="text-xs font-semibold text-primary">
-                      {initials}
-                    </span>
+                <div className="flex items-center gap-2.5 px-2 py-2">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+                    <span className="text-xs font-semibold text-primary">{initials}</span>
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{displayName}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </span>
+                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut />
-                  Log out
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive focus:bg-destructive/8 focus:text-destructive"
+                >
+                  <LogOut className="mr-2 size-4" />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
