@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Calendar,
-  Pill,
-  FlaskConical,
   FileText,
   MessageCircle,
   Settings,
   LogOut,
   ChevronsUpDown,
   Heart,
+  CreditCard,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,12 +38,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/app/dashboard/context";
 
 const navItems = [
-  { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Appointments", href: "/dashboard/appointments", icon: Calendar },
-  { title: "Medications", href: "/dashboard/medications", icon: Pill },
-  { title: "Lab Results", href: "/dashboard/labs", icon: FlaskConical },
-  { title: "Health Records", href: "/dashboard/records", icon: FileText },
-  { title: "Messages", href: "/dashboard/messages", icon: MessageCircle },
+  { title: "Records", href: "/dashboard/records", icon: FileText },
+  { title: "AI Assistant", href: "/dashboard/ai", icon: MessageCircle },
+  { title: "Billing", href: "/dashboard/billing", icon: CreditCard },
+  { title: "Family", href: "/dashboard/family", icon: Users },
 ];
 
 const navSecondary = [
