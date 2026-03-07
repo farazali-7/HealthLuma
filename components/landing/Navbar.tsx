@@ -109,7 +109,7 @@ export default function Navbar() {
             </a>
 
             {/* Sign Up — primary */}
-            <a href="/sign-up" className="hl-nav-book">
+            <a href="/signup" className="hl-nav-book">
               Sign Up
             </a>
           </div>
@@ -190,7 +190,7 @@ export default function Navbar() {
               Login
             </a>
             <a
-              href="/sign-up"
+              href="/signup"
               onClick={() => setMobileOpen(false)}
               style={{
                 background: "#185C45",

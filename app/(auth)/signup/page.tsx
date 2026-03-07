@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, ArrowRight, Loader2, Check } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  Check,
+  User,
+  Stethoscope,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
+type Role = "patient" | "doctor";
+
 export default function SignupPage() {
+  const [role, setRole] = useState<Role>("patient");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,9 +49,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        },
+        data: { full_name: fullName, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -51,8 +60,20 @@ export default function SignupPage() {
       return;
     }
 
-    if (data.session) {
-      window.location.href = "/dashboard";
+    // Immediately logged in (email confirmation disabled) — write role to DB.
+    // Use ignoreDuplicates so an existing row's role is never overwritten
+    // (e.g. if an admin already promoted this user to doctor via SQL).
+    if (data.session && data.user) {
+      await supabase.from("users").upsert(
+        {
+          id: data.user.id,
+          email: data.user.email,
+          full_name: fullName,
+          role,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      window.location.href = role === "doctor" ? "/doctor" : "/dashboard";
       return;
     }
 
@@ -60,22 +81,14 @@ export default function SignupPage() {
     setLoading(false);
   }
 
-  async function handleGoogleSignup() {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  }
+ 
 
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-vault-positive/10 border border-vault-positive/20">
-            <Check className="size-8 text-vault-positive" />
+          <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-[#4D9A7F]/10 border border-[#4D9A7F]/20">
+            <Check className="size-8 text-[#4D9A7F]" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-3">
             Verify your email
@@ -109,7 +122,6 @@ export default function SignupPage() {
         />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          {/* Logo */}
           <div>
             <Link
               href="/"
@@ -119,7 +131,6 @@ export default function SignupPage() {
             </Link>
           </div>
 
-          {/* Content */}
           <div className="max-w-md">
             <div className="flex items-center gap-3 mb-8">
               <div className="h-px w-12 bg-[#4D9A7F]" />
@@ -135,24 +146,41 @@ export default function SignupPage() {
             </h2>
 
             <p className="text-[#A0A5AD] text-[15px] leading-relaxed mb-10">
-              HealthLuma helps patients and doctors manage appointments,
-              prescriptions, and medical records in one secure, modern platform.
-              Built with privacy, clarity, and care at its core.
+              HealthLuma connects patients and doctors in one secure, modern
+              platform built with privacy, clarity, and care at its core.
             </p>
 
             <div className="space-y-4">
               {[
-                "Secure storage of medical records",
-                "Appointment scheduling & tracking",
-                "Doctor & patient dashboards with role-based access",
-              ].map((benefit, i) => (
+                {
+                  icon: <User className="size-3.5" />,
+                  label: "Patients",
+                  desc: "Track health records, appointments & medications",
+                },
+                {
+                  icon: <Stethoscope className="size-3.5" />,
+                  label: "Doctors",
+                  desc: "Manage patients, schedules & clinical notes",
+                },
+                {
+                  icon: <Check className="size-3.5" />,
+                  label: "Everyone",
+                  desc: "256-bit encrypted, HIPAA-aligned data security",
+                },
+              ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#4D9A7F]/15">
-                    <Check className="size-3 text-[#4D9A7F]" />
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-[#4D9A7F]/15 text-[#4D9A7F]">
+                    {item.icon}
                   </div>
-                  <span className="text-sm text-[#A0A5AD]">
-                    {benefit}
-                  </span>
+                  <div>
+                    <span className="text-sm font-medium text-[#E8E5DE]">
+                      {item.label}
+                    </span>
+                    <span className="text-sm text-[#A0A5AD]">
+                      {" — "}
+                      {item.desc}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -178,7 +206,7 @@ export default function SignupPage() {
 
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
-              Create your HealthLuma account
+              Create your account
             </h1>
             <p className="text-sm text-muted-foreground">
               Already registered?{" "}
@@ -191,25 +219,7 @@ export default function SignupPage() {
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full h-11 rounded-xl text-sm font-medium gap-3 mb-6"
-            onClick={handleGoogleSignup}
-            type="button"
-          >
-            Continue with Google
-          </Button>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-3 text-muted-foreground">
-                or sign up with email
-              </span>
-            </div>
-          </div>
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-sm text-destructive">
@@ -223,7 +233,9 @@ export default function SignupPage() {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder={
+                  role === "doctor" ? "Dr. First Last" : "Enter your full name"
+                }
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -272,23 +284,27 @@ export default function SignupPage() {
               {password.length > 0 && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                   {[
-                    { check: passwordChecks.length, label: "At least 8 characters" },
-                    { check: passwordChecks.uppercase, label: "One uppercase letter" },
+                    {
+                      check: passwordChecks.length,
+                      label: "At least 8 characters",
+                    },
+                    {
+                      check: passwordChecks.uppercase,
+                      label: "One uppercase letter",
+                    },
                     { check: passwordChecks.number, label: "One number" },
                   ].map((item, i) => (
                     <div
                       key={i}
                       className={`flex items-center gap-1.5 text-xs transition-colors ${
                         item.check
-                          ? "text-vault-positive"
+                          ? "text-[#4D9A7F]"
                           : "text-muted-foreground"
                       }`}
                     >
                       <div
                         className={`size-3.5 rounded-full flex items-center justify-center ${
-                          item.check
-                            ? "bg-vault-positive/15"
-                            : "bg-muted"
+                          item.check ? "bg-[#4D9A7F]/15" : "bg-muted"
                         }`}
                       >
                         {item.check && <Check className="size-2.5" />}
@@ -303,7 +319,11 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading || !isPasswordValid}
-              className="w-full h-11 rounded-xl text-sm font-medium mt-2 gap-2"
+              className={`w-full h-11 rounded-xl text-sm font-medium mt-2 gap-2 ${
+                role === "doctor"
+                  ? "bg-[#4D9A7F] hover:bg-[#3d7a65] text-white"
+                  : ""
+              }`}
             >
               {loading ? (
                 <>
@@ -312,7 +332,7 @@ export default function SignupPage() {
                 </>
               ) : (
                 <>
-                  Join HealthLuma
+                  Join as {role === "doctor" ? "Doctor" : "Patient"}
                   <ArrowRight className="size-4" />
                 </>
               )}
