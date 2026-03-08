@@ -1,10 +1,12 @@
-HealthLuma
+# HealthLuma
 
 HealthLuma is a digital clinic platform built for a private medical practice. It enables patients to book consultations, manage medical records, and access a subscription-based care plan, while providing the doctor with a centralized dashboard to manage appointments, patients, prescriptions, and clinic operations.
 
 The project demonstrates a modern SaaS architecture using Next.js, Supabase, and Stripe, with a clear separation between marketing pages and the authenticated application.
 
-Overview
+---
+
+## Overview
 
 HealthLuma models the workflow of a real outpatient clinic in a modern web application.
 
@@ -14,114 +16,100 @@ The doctor manages the clinic through an administrative dashboard that includes 
 
 The application is designed to demonstrate production-level patterns including authentication, role-based dashboards, payments, subscriptions, and structured data models.
 
-Core Features
-Patient Portal
+---
+
+## Core Features
+
+### Patient Portal
 
 Registered patients can:
 
-Book appointments through a calendar-based interface
+- Book appointments through a calendar-based interface  
+- View upcoming and past consultations  
+- Upload medical reports and documents  
+- Access digital prescriptions  
+- Review billing history and invoices  
+- Interact with a health assistant for basic guidance  
 
-View upcoming and past consultations
+---
 
-Upload medical reports and documents
-
-Access digital prescriptions
-
-Review billing history and invoices
-
-Interact with a health assistant for basic guidance
-
-Pro Membership
+### Pro Membership
 
 HealthLuma includes a subscription plan designed for families and long-term care.
 
 Pro members receive:
 
-Discounted consultation pricing
-
-Priority booking slots
-
-Family member linking (up to four members)
-
-Extended AI assistant usage
-
-Prescription archive access
-
-Downloadable health summaries
-
-Appointment reminders via email or SMS
-
-Same-day urgent booking access
+- Discounted consultation pricing  
+- Priority booking slots  
+- Family member linking (up to four members)  
+- Extended AI assistant usage  
+- Prescription archive access  
+- Downloadable health summaries  
+- Appointment reminders via email or SMS  
+- Same-day urgent booking access  
 
 Pricing model:
 
-Standard consultation: $100
-Pro membership: $150 per year
+- Standard consultation: **$100**  
+- Pro membership: **$150 per year**
 
-Appointment System
+---
+
+### Appointment System
 
 Appointments are managed through a structured booking system.
 
 Key characteristics:
 
-Calendar-based availability
-
-Configurable slot duration (15 or 30 minutes)
-
-Real-time availability checks
-
-Slot locking during checkout
-
-Payment confirmation via Stripe
-
-Automated confirmation notifications
+- Calendar-based availability  
+- Configurable slot duration (15 or 30 minutes)  
+- Real-time availability checks  
+- Slot locking during checkout  
+- Payment confirmation via Stripe  
+- Automated confirmation notifications  
 
 Booking flow:
-
 Select date
 Select available time slot
 Complete checkout
 Receive confirmation
 
-Doctor Dashboard
+
+---
+
+### Doctor Dashboard
 
 The doctor dashboard centralizes all clinic management tasks.
 
 Capabilities include:
 
-Managing daily schedule and availability
+- Managing daily schedule and availability  
+- Reviewing and updating appointments  
+- Recording consultation outcomes  
+- Issuing prescriptions  
+- Reviewing patient medical history  
+- Managing pricing and subscriptions  
+- Sending announcements to patients  
+- Viewing clinic analytics and revenue reports  
 
-Reviewing and updating appointments
+---
 
-Recording consultation outcomes
-
-Issuing prescriptions
-
-Reviewing patient medical history
-
-Managing pricing and subscriptions
-
-Sending announcements to patients
-
-Viewing clinic analytics and revenue reports
-
-Digital Health Records
+### Digital Health Records
 
 HealthLuma provides a persistent record system for patients.
 
 Patients can:
 
-Upload reports (PDF or image)
-
-Access prescription history
-
-View consultation summaries
-
-Maintain a structured medical timeline
+- Upload reports (PDF or image)  
+- Access prescription history  
+- View consultation summaries  
+- Maintain a structured medical timeline  
 
 This allows the platform to act as a long-term digital health record system.
 
-AI Health Assistant
+---
+
+### AI Health Assistant
 
 An integrated assistant provides basic medical guidance.
 
@@ -129,83 +117,76 @@ Free users receive limited usage per month.
 
 Pro members receive extended access and additional features including:
 
-Symptom explanation
+- Symptom explanation  
+- Medication guidance  
+- Pre-visit advice  
+- Post-consultation clarification  
 
-Medication guidance
+---
 
-Pre-visit advice
-
-Post-consultation clarification
-
-Application Architecture
+## Application Architecture
 
 The project separates marketing pages from the authenticated application to maintain a clean architecture.
-
 /
-  landing pages
-  pricing
-  doctor profile
-  services
+landing pages
+pricing
+doctor profile
+services
 
 /login
 /register
 
 /app
-  dashboard
-  appointments
-  records
-  ai
-  billing
-  family
+dashboard
+appointments
+records
+ai
+billing
+family
 
 /doctor
-  dashboard
-  appointments
-  patients
-  prescriptions
-  records
-  billing
-  analytics
+dashboard
+appointments
+patients
+prescriptions
+records
+billing
+analytics
 
 This structure keeps the marketing layer independent from the application layer and simplifies long-term maintenance.
 
-Technology Stack
+---
 
-Frontend
+## Technology Stack
 
-Next.js (App Router)
+### Frontend
 
-React
+- Next.js (App Router)  
+- React  
+- Tailwind CSS  
+- shadcn/ui component system  
+- Lucide icon set  
 
-Tailwind CSS
+### Backend
 
-shadcn/ui component system
+- Supabase  
+- PostgreSQL  
+- Supabase Authentication  
+- Supabase Storage  
 
-Lucide icon set
+### Payments
 
-Backend
+- Stripe payment processing  
+- Subscription billing  
+- Webhook-based payment events  
 
-Supabase
+### Deployment
 
-PostgreSQL
+- Vercel
 
-Supabase Authentication
+---
 
-Supabase Storage
-
-Payments
-
-Stripe payment processing
-
-Subscription billing
-
-Webhook-based payment events
-
-Deployment
-
-Vercel
-
-UI System
+## UI System
 
 The interface uses a component-driven design built with Tailwind CSS and shadcn/ui.
 
@@ -213,8 +194,13 @@ The application prioritizes clarity and accessibility due to the healthcare cont
 
 Desktop layout uses a sidebar-based navigation model, while mobile devices use simplified navigation patterns for ease of access.
 
-Running the Project Locally
-1. Clone the repository
+---
+
+## Running the Project Locally
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/yourusername/healthluma.git
 cd healthluma
 2. Install dependencies
@@ -235,7 +221,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 
-Supabase credentials can be found in the Supabase dashboard under Project Settings → API.
+Supabase credentials can be found in the Supabase dashboard under:
+
+Project Settings → API
 
 4. Start the development server
 npm run dev
@@ -283,5 +271,3 @@ Author
 
 Faraz Ali
 Full-Stack Developer
-
-Next.js, Supabase, SaaS architecture
