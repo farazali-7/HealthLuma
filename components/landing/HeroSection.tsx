@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shield, BadgeCheck, Clock } from "lucide-react";
 
 export default function HeroSection() {
@@ -11,6 +12,7 @@ export default function HeroSection() {
         position: "relative",
         overflow: "hidden",
         paddingTop: "72px",
+        background: "#FFFFFF",
       }}
     >
       {/* Atmospheric glows */}
@@ -42,39 +44,59 @@ export default function HeroSection() {
         }}
       />
 
+
+      {/* Right half image — inset with margin on top, right, bottom */}
+      <div
+        style={{
+          position: "absolute",
+          top: "90px",
+          right: "50px",
+          bottom: "40px",
+          width: "50%",
+          zIndex: 1,
+          overflow: "hidden",
+          borderRadius: "16px",
+        }}
+      >
+        <Image
+          src="/images/shero-doctor.png"
+          alt="Doctor"
+          fill
+          style={{ objectFit: "cover", objectPosition: "15% top" }}
+          priority
+        />
+      </div>
+
       <div
         className="hl-container hl-hero-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "64px",
+          gap: "6px",
           alignItems: "center",
           width: "100%",
           padding: "80px 24px",
+          position: "relative",
+          zIndex: 2,
         }}
       >
         {/* ── Left Column ── */}
-        <div>
-          {/* Doctor badge */}
+        <div style={{ marginLeft: "-40px" }}>
+          {/* Eyebrow */}
           <div
             className="hl-fade-1"
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "10px",
+              gap: "8px",
               background: "rgba(24, 92, 69, 0.06)",
               border: "1px solid rgba(24, 92, 69, 0.14)",
               borderRadius: "9999px",
-              padding: "7px 18px",
-              marginBottom: "32px",
+              padding: "6px 14px",
+              marginBottom: "28px",
             }}
           >
-            <BadgeCheck
-              size={14}
-              color="#185C45"
-              strokeWidth={2}
-              style={{ flexShrink: 0 }}
-            />
+            <BadgeCheck size={14} color="#185C45" strokeWidth={2} style={{ flexShrink: 0 }} />
             <span
               style={{
                 color: "#476355",
@@ -84,8 +106,8 @@ export default function HeroSection() {
                 letterSpacing: "0.01em",
               }}
             >
-              Dr. Jack Harrison ·{" "}
-              <span style={{ color: "#162920" }}>Private Family Practice</span>
+              Private Family Practice ·{" "}
+              <span style={{ color: "#162920", fontWeight: "600" }}>Dr. Jack Harrison</span>
             </span>
           </div>
 
@@ -94,25 +116,19 @@ export default function HeroSection() {
             className="hl-fade-2"
             style={{
               fontFamily: "var(--font-playfair)",
-              fontSize: "clamp(40px, 5vw, 64px)",
+              fontSize: "clamp(38px, 4.8vw, 62px)",
               fontWeight: "800",
               lineHeight: "1.08",
               letterSpacing: "-0.03em",
               color: "#162920",
-              marginBottom: "24px",
+              marginBottom: "20px",
             }}
           >
-            Care That Works
+            Healthcare Made Simple
             <br />
             for Your{" "}
-            <span
-              style={{
-                color: "#185C45",
-                position: "relative",
-                display: "inline-block",
-              }}
-            >
-              Whole Family.
+            <span style={{ color: "#185C45", position: "relative", display: "inline-block" }}>
+              Family.
             </span>
           </h1>
 
@@ -121,41 +137,44 @@ export default function HeroSection() {
             className="hl-fade-3"
             style={{
               color: "#476355",
-              fontSize: "17px",
-              lineHeight: "1.7",
-              maxWidth: "510px",
-              marginBottom: "40px",
+              fontSize: "16px",
+              lineHeight: "1.75",
+              maxWidth: "480px",
+              marginBottom: "12px",
               fontFamily: "var(--font-dm-sans)",
             }}
           >
-            Book Dr. Jack online in 60 seconds. See live availability, pay
-            transparently, and with the Pro plan — priority access, 20% off
-            every visit, and your whole family covered under one account.
+            Book an appointment in under 60 seconds. See live availability,
+            transparent pricing, and manage care for your entire family in one place.
+          </p>
+          <p
+            className="hl-fade-3"
+            style={{
+              color: "#7C9488",
+              fontSize: "14.5px",
+              lineHeight: "1.65",
+              maxWidth: "460px",
+              marginBottom: "36px",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
+            With{" "}
+            <span style={{ color: "#185C45", fontWeight: "600" }}>HealthLuma Pro</span>,
+            get priority bookings, 20% off every visit, and full family coverage under one account.
           </p>
 
           {/* CTAs */}
           <div
             className="hl-fade-4"
-            style={{
-              display: "flex",
-              gap: "14px",
-              flexWrap: "wrap",
-              marginBottom: "36px",
-            }}
+            style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "32px" }}
           >
             <a
               href="#"
               className="hl-btn-primary"
-              style={{ fontSize: "16px", padding: "16px 36px" }}
+              style={{ fontSize: "15px", padding: "14px 32px" }}
             >
-              Book an Appointment
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-              >
+              Book in 60 Seconds
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path
                   d="M3 8h10M9 4l4 4-4 4"
                   stroke="currentColor"
@@ -168,21 +187,21 @@ export default function HeroSection() {
             <a
               href="#"
               className="hl-btn-secondary"
-              style={{ fontSize: "16px", padding: "16px 32px" }}
+              style={{ fontSize: "15px", padding: "14px 28px" }}
             >
-              See the Pro Plan
+              Explore Pro Plan
             </a>
           </div>
 
-          {/* Trust signals — 3 items */}
+          {/* Trust signals */}
           <div
             className="hl-fade-5"
             style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}
           >
             {[
-              { Icon: Shield, text: "Secure payments" },
-              { Icon: Clock, text: "Instant confirmation" },
-              { Icon: BadgeCheck, text: "Free to register" },
+              { Icon: Clock,      text: "Same-day appointments" },
+              { Icon: Shield,     text: "Transparent pricing" },
+              { Icon: BadgeCheck, text: "Family accounts supported" },
             ].map(({ Icon, text }, i) => (
               <div
                 key={i}
@@ -195,268 +214,15 @@ export default function HeroSection() {
                   fontFamily: "var(--font-dm-sans)",
                 }}
               >
-                <Icon
-                  size={13}
-                  color="rgba(24, 92, 69, 0.6)"
-                  strokeWidth={1.75}
-                  style={{ flexShrink: 0 }}
-                />
+                <Icon size={13} color="rgba(24, 92, 69, 0.7)" strokeWidth={2} style={{ flexShrink: 0 }} />
                 {text}
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── Right Column — Floating Product Cards ── */}
-        <div
-          className="hl-hero-cards"
-          style={{ position: "relative", height: "500px" }}
-        >
-          {/* Subtle glow */}
-          <div
-            className="hl-fade-6"
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "radial-gradient(ellipse at 55% 50%, rgba(24, 92, 69, 0.05) 0%, transparent 68%)",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* Card A — Appointment Confirmed */}
-          <div
-            className="hl-float-a hl-fade-6"
-            style={{
-              position: "absolute",
-              top: "40px",
-              right: "0",
-              width: "310px",
-              background: "#FFFFFF",
-              border: "1px solid rgba(208, 212, 209, 0.9)",
-              borderRadius: "22px",
-              padding: "22px",
-              boxShadow:
-                "0 24px 64px rgba(22, 41, 32, 0.1), 0 4px 16px rgba(22, 41, 32, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                marginBottom: "18px",
-              }}
-            >
-              <div
-                style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "11px",
-                  background: "rgba(24, 92, 69, 0.08)",
-                  border: "1px solid rgba(24, 92, 69, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#185C45"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </div>
-              <div>
-                <div
-                  style={{
-                    color: "#162920",
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    fontFamily: "var(--font-dm-sans)",
-                  }}
-                >
-                  Appointment Confirmed
-                </div>
-                <div
-                  style={{
-                    color: "#476355",
-                    fontSize: "12px",
-                    fontFamily: "var(--font-dm-sans)",
-                    marginTop: "3px",
-                  }}
-                >
-                  Pediatric Consultation · Dr. Jack
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderTop: "1px solid rgba(208, 212, 209, 0.7)",
-                paddingTop: "14px",
-              }}
-            >
-              <span
-                style={{
-                  color: "#476355",
-                  fontSize: "13px",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                Mon, Mar 3 · 10:00 AM
-              </span>
-              <span
-                style={{
-                  background: "rgba(34, 197, 94, 0.08)",
-                  border: "1px solid rgba(34, 197, 94, 0.2)",
-                  color: "#16a34a",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  fontFamily: "var(--font-dm-sans)",
-                  padding: "4px 12px",
-                  borderRadius: "9999px",
-                }}
-              >
-                ✓ Confirmed
-              </span>
-            </div>
-          </div>
-
-          {/* Card B — Pro Plan indicator */}
-          <div
-            className="hl-float-b hl-fade-6"
-            style={{
-              position: "absolute",
-              bottom: "48px",
-              left: "0",
-              width: "285px",
-              background: "#FFFFFF",
-              border: "1px solid rgba(24, 92, 69, 0.14)",
-              borderRadius: "22px",
-              padding: "20px",
-              boxShadow:
-                "0 24px 64px rgba(22, 41, 32, 0.1), 0 4px 16px rgba(22, 41, 32, 0.06)",
-            }}
-          >
-            {/* Pro badge */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "14px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    background: "rgba(24, 92, 69, 0.08)",
-                    border: "1px solid rgba(24, 92, 69, 0.16)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    fontFamily: "var(--font-playfair)",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    color: "#185C45",
-                  }}
-                >
-                  JK
-                </div>
-                <div>
-                  <div
-                    style={{
-                      color: "#162920",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      fontFamily: "var(--font-dm-sans)",
-                    }}
-                  >
-                    James K.
-                  </div>
-                  <div
-                    style={{
-                      color: "#476355",
-                      fontSize: "11px",
-                      fontFamily: "var(--font-dm-sans)",
-                    }}
-                  >
-                    Family Care Pro
-                  </div>
-                </div>
-              </div>
-              <span
-                style={{
-                  background: "rgba(24, 92, 69, 0.08)",
-                  border: "1px solid rgba(24, 92, 69, 0.16)",
-                  color: "#185C45",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  fontFamily: "var(--font-dm-sans)",
-                  letterSpacing: "0.06em",
-                  padding: "3px 10px",
-                  borderRadius: "9999px",
-                }}
-              >
-                PRO
-              </span>
-            </div>
-            <div
-              style={{
-                background: "rgba(24, 92, 69, 0.04)",
-                border: "1px solid rgba(24, 92, 69, 0.1)",
-                borderRadius: "10px",
-                padding: "10px 14px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  color: "#476355",
-                  fontSize: "12px",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                This month
-              </span>
-              <span
-                style={{
-                  color: "#185C45",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                Saved $40 · 2 visits
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* ── Right Column — empty placeholder (image is absolutely positioned on section) ── */}
+        <div />
       </div>
     </section>
   );

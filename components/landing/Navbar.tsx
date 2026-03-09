@@ -22,7 +22,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <>
+    <> <div className="bg-white">
       <nav
         style={{
           position: "fixed",
@@ -212,6 +212,6 @@ export default function Navbar() {
           </div>
         </div>
       )}
-    </>
+    </div></>
   );
 }
