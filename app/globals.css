@@ -570,51 +570,81 @@
 }
 
 /* ─── Navbar ─────────────────────────────── */
+@keyframes mobile-menu-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .hl-nav-link {
-  color: #435448;
+  position: relative;
+  color: #3D5244;
   font-size: 14px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s;
+  padding: 6px 10px;
+  border-radius: 8px;
+  letter-spacing: -0.01em;
+  transition: color 0.18s, background 0.18s;
+  outline: none;
 }
-.hl-nav-link:hover { color: #162920; }
+.hl-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 10px;
+  right: 10px;
+  height: 1.5px;
+  background: #1A5C44;
+  border-radius: 999px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hl-nav-link:hover { color: #0F2218; }
+.hl-nav-link:hover::after { transform: scaleX(1); }
+.hl-nav-link[data-active="true"] { color: #0F2218; }
+.hl-nav-link[data-active="true"]::after { transform: scaleX(1); }
 
 .hl-nav-login {
-  color: #435448;
+  color: #3D5244;
   font-size: 14px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
   font-weight: 500;
-  padding: 8px 14px;
+  padding: 7px 16px;
   border-radius: 9999px;
-  border: 1px solid #BEC6BF;
-  transition: border-color 0.2s, color 0.2s;
+  border: 1px solid rgba(180,198,185,0.9);
+  letter-spacing: -0.01em;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
 }
 .hl-nav-login:hover {
-  border-color: rgba(26, 92, 68, 0.40);
-  color: #162920;
+  border-color: rgba(26, 92, 68, 0.5);
+  color: #0F2218;
+  background: rgba(26,92,68,0.04);
 }
 
 .hl-nav-book {
   background: #1A5C44;
   color: #FFFFFF;
-  padding: 9px 20px;
+  padding: 8px 18px;
   border-radius: 9999px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   text-decoration: none;
-  box-shadow: 0 2px 10px rgba(22, 41, 32, 0.18);
-  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 8px rgba(22, 41, 32, 0.2), 0 0 0 1px rgba(26,92,68,0.12) inset;
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
   white-space: nowrap;
 }
 .hl-nav-book:hover {
   background: #154D3A;
-  box-shadow: 0 4px 18px rgba(22, 41, 32, 0.28);
+  box-shadow: 0 4px 16px rgba(22, 41, 32, 0.28);
   transform: translateY(-1px);
 }
 
+/* kept for backward compat — no longer rendered but harmless */
 .hl-logo-dot {
   width: 8px;
   height: 8px;
@@ -805,9 +835,26 @@ input[type="range"].hl-slider::-moz-range-thumb {
   white-space: nowrap;
 }
 .hl-sticky-pill-inner:hover {
-  background: #154D3A;
   box-shadow: 0 12px 36px rgba(22, 41, 32, 0.38);
   transform: translateY(-2px);
+}
+
+/* ─── AI Chat Animations ─────────────────────────────────────────── */
+@keyframes chat-panel-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
 }
 
 /* ─── Section Divider Gold ───────────────── */

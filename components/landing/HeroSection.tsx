@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Shield, BadgeCheck, Clock } from "lucide-react";
+import AIChatButton from "@/components/landing/AIChat";
 
 export default function HeroSection() {
   const [showPill, setShowPill] = useState(false);
@@ -301,18 +302,8 @@ export default function HeroSection() {
         </div>
       </section>
 
-      {/* Sticky booking pill — appears after scrolling past the hero */}
-      {showPill && (
-        <div className="hl-sticky-pill" style={{ display: "block" }}>
-          <a href="#" className="hl-sticky-pill-inner">
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M5 5h6M5 8h6M5 11h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            Book Appointment
-          </a>
-        </div>
-      )}
+      {/* AI Health Assistant sticky button + chat panel */}
+      <AIChatButton show={showPill} />
     </>
   );
 }

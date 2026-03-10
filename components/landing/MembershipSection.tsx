@@ -5,7 +5,7 @@ import ScrollReveal from "./ScrollReveal";
 
 const VALUE_CARDS = [
   {
-    number: "20%",
+    number: "35%",
     label: "Off Every Visit",
     body: "For you, your spouse, up to 6 children, and both parents. Every consultation. All year. No caps, no limits, no fine print.",
   },
@@ -22,7 +22,7 @@ const VALUE_CARDS = [
 ];
 
 const VISIT_COST = 100;
-const MEMBER_COST = 80;
+const MEMBER_COST = 65;
 const MEMBERSHIP_FEE = 150;
 
 export default function MembershipSection() {
@@ -329,7 +329,7 @@ export default function MembershipSection() {
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
-                  {visits} visits × $80 + $150
+                  {visits} visits × $65 + $150
                 </div>
               </div>
             </div>

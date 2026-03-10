@@ -1,12 +1,292 @@
-import { BarChart2 } from "lucide-react";
-import { PlaceholderPage } from "../_placeholder";
+"use client";
+
+import { useState } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Calendar,
+  Star,
+  Clock,
+  Activity,
+  Repeat,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from "recharts";
+
+// ─── Data ──────────────────────────────────────────────────────
+
+const MONTHLY_PATIENTS = [
+  { month: "Sep", patients: 62, newPatients: 8 },
+  { month: "Oct", patients: 71, newPatients: 12 },
+  { month: "Nov", patients: 58, newPatients: 7 },
+  { month: "Dec", patients: 44, newPatients: 4 },
+  { month: "Jan", patients: 68, newPatients: 11 },
+  { month: "Feb", patients: 74, newPatients: 14 },
+];
+
+const APPOINTMENT_TYPES = [
+  { name: "Follow-up",     value: 42, color: "#4D9A7F" },
+  { name: "New Patient",   value: 18, color: "#185C45" },
+  { name: "Annual Check",  value: 24, color: "#7FC4A8" },
+  { name: "Consultation",  value: 16, color: "#C4975A" },
+];
+
+const CONDITIONS_BREAKDOWN = [
+  { condition: "Hypertension",    count: 24 },
+  { condition: "Type 2 Diabetes", count: 18 },
+  { condition: "Thyroid",         count: 14 },
+  { condition: "Arthritis",       count: 11 },
+  { condition: "Anxiety/Mental",  count: 9 },
+  { condition: "Other",           count: 38 },
+];
+
+const WEEKLY_LOAD = [
+  { day: "Mon", appts: 8 },
+  { day: "Tue", appts: 6 },
+  { day: "Wed", appts: 9 },
+  { day: "Thu", appts: 7 },
+  { day: "Fri", appts: 5 },
+];
+
+const KPI_STATS = [
+  { label: "Avg patients/day",  value: "7.4",  change: "+0.8", up: true,  icon: <Users className="size-3.5" /> },
+  { label: "Consultation time", value: "18 min", change: "-2 min", up: true,  icon: <Clock className="size-3.5" /> },
+  { label: "No-show rate",      value: "3.2%", change: "-0.5%", up: true,  icon: <Calendar className="size-3.5" /> },
+  { label: "Patient retention", value: "84%",  change: "+3%",   up: true,  icon: <Repeat className="size-3.5" /> },
+  { label: "Pro members",       value: "18",   change: "+4",    up: true,  icon: <Star className="size-3.5" /> },
+  { label: "Avg rating",        value: "4.9",  change: "stable", up: null, icon: <Activity className="size-3.5" /> },
+];
+
+// ─── Tooltip helpers ────────────────────────────────────────────
+
+function SimpleTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-border bg-popover px-3.5 py-2.5 shadow-lg">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 text-sm">
+          <span className="size-2 rounded-full" style={{ background: p.color }} />
+          <span className="text-foreground font-semibold">{p.value}</span>
+          <span className="text-muted-foreground text-xs">{p.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Period = "3m" | "6m" | "12m";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "3m":  "Last 3 months",
+  "6m":  "Last 6 months",
+  "12m": "This year",
+};
+
+const PERIOD_SLICES: Record<Period, number> = { "3m": 3, "6m": 6, "12m": 6 };
+
+// ─── Page ──────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  const [period, setPeriod] = useState<Period>("6m");
+
+  const slice     = PERIOD_SLICES[period];
+  const chartData = MONTHLY_PATIENTS.slice(-slice);
+
+  const totalPatients = chartData.reduce((s, m) => s + m.patients, 0);
+  const newPatients   = chartData.reduce((s, m) => s + m.newPatients, 0);
+
   return (
-    <PlaceholderPage
-      icon={BarChart2}
-      title="Analytics"
-      description="Track monthly revenue, appointment volume, patient growth, and Pro membership statistics."
-    />
+    <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
+
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" style={{ fontFamily: "var(--font-playfair)" }}>
+            Analytics
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Practice performance — {PERIOD_LABELS[period]}
+          </p>
+        </div>
+        {/* Period selector */}
+        <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 self-start sm:self-auto">
+          {(["3m", "6m", "12m"] as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-all ${
+                period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p === "3m" ? "3 months" : p === "6m" ? "6 months" : "This year"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {KPI_STATS.map((kpi, i) => (
+          <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+            <div className="flex items-start justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{kpi.label}</p>
+              <span className="flex size-6 items-center justify-center rounded-lg bg-[#4D9A7F]/10 text-[#4D9A7F]">
+                {kpi.icon}
+              </span>
+            </div>
+            <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+              {kpi.value}
+            </p>
+            <div className="mt-1 flex items-center gap-1">
+              {kpi.up === true  && <TrendingUp  className="size-3 text-vault-positive" />}
+              {kpi.up === false && <TrendingDown className="size-3 text-vault-negative" />}
+              <span className={`text-[10px] font-medium ${
+                kpi.up === true ? "text-vault-positive" : kpi.up === false ? "text-vault-negative" : "text-muted-foreground"
+              }`}>
+                {kpi.change}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 1: Patient Volume + Appointment Types */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+
+        {/* Patient Volume Line Chart */}
+        <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
+          <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{PERIOD_LABELS[period]}</p>
+              <h2 className="mt-0.5 text-sm font-semibold text-foreground">Patient Volume</h2>
+            </div>
+            <div className="flex gap-4 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-[#4D9A7F]" />
+                Total ({totalPatients})
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-[#C4975A]" />
+                New ({newPatients})
+              </span>
+            </div>
+          </div>
+          <div className="px-3 pb-4 pt-4">
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<SimpleTooltip />} />
+                  <Line type="monotone" dataKey="patients"    name="Total"   stroke="#4D9A7F" strokeWidth={2} dot={{ r: 3, fill: "#4D9A7F", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="newPatients" name="New"     stroke="#C4975A" strokeWidth={2} dot={{ r: 3, fill: "#C4975A", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Appointment Types Donut */}
+        <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
+          <div className="border-b border-border/60 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Breakdown</p>
+            <h2 className="mt-0.5 text-sm font-semibold text-foreground">Appointment Types</h2>
+          </div>
+          <div className="flex items-center gap-4 p-5">
+            <div className="h-32 w-32 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={APPOINTMENT_TYPES} cx="50%" cy="50%" innerRadius={30} outerRadius={56} paddingAngle={3} dataKey="value">
+                    {APPOINTMENT_TYPES.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip formatter={(value, name) => [`${value}%`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2">
+              {APPOINTMENT_TYPES.map((type, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 shrink-0 rounded-full" style={{ background: type.color }} />
+                    <span className="text-xs text-muted-foreground">{type.name}</span>
+                  </div>
+                  <span className="text-xs font-semibold tabular-nums text-foreground">{type.value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Top Conditions + Weekly Load */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+
+        {/* Weekly Load Bar Chart */}
+        <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
+          <div className="border-b border-border/60 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">This Week</p>
+            <h2 className="mt-0.5 text-sm font-semibold text-foreground">Daily Appointment Load</h2>
+          </div>
+          <div className="px-3 pb-4 pt-4">
+            <div className="h-44 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={WEEKLY_LOAD} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<SimpleTooltip />} />
+                  <Bar dataKey="appts" name="Appointments" fill="#4D9A7F" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Conditions */}
+        <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
+          <div className="border-b border-border/60 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Prevalence</p>
+            <h2 className="mt-0.5 text-sm font-semibold text-foreground">Top Patient Conditions</h2>
+          </div>
+          <div className="space-y-3 p-5">
+            {CONDITIONS_BREAKDOWN.map((item, i) => {
+              const total = CONDITIONS_BREAKDOWN.reduce((s, c) => s + c.count, 0);
+              const pct = Math.round((item.count / total) * 100);
+              return (
+                <div key={i}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="font-medium text-foreground">{item.condition}</span>
+                    <span className="tabular-nums text-muted-foreground">{item.count} patients ({pct}%)</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted/40">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: i === 0 ? "#4D9A7F" : i === 1 ? "#185C45" : i === 2 ? "#7FC4A8" : i === 3 ? "#C4975A" : "#94A3B8" }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
