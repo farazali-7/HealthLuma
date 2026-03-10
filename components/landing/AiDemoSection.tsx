@@ -90,6 +90,7 @@ function getCannedReply(input: string): Message {
 export default function AiDemoSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -98,9 +99,10 @@ export default function AiDemoSection() {
   const [inputEnabled, setInputEnabled] = useState(false);
   const [animStage, setAnimStage] = useState(0);
 
-  // Scroll to bottom on new message
+  // Scroll chat container only — NOT the page window
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, isTyping]);
 
   // Initial animation sequence on scroll into view
@@ -311,6 +313,7 @@ export default function AiDemoSection() {
 
               {/* Message Area */}
               <div
+                ref={messagesContainerRef}
                 style={{
                   padding: "20px 20px 12px",
                   display: "flex",

@@ -4,9 +4,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Shield, BadgeCheck, Clock } from "lucide-react";
 import AIChatButton from "@/components/landing/AIChat";
+import FamilyPlanModal from "@/components/landing/FamilyPlanModal";
 
 export default function HeroSection() {
   const [showPill, setShowPill] = useState(false);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -18,6 +20,8 @@ export default function HeroSection() {
 
   return (
     <>
+      {showFamilyModal && <FamilyPlanModal onClose={() => setShowFamilyModal(false)} />}
+
       <section
         className="hl-section-dark"
         style={{
@@ -26,7 +30,7 @@ export default function HeroSection() {
           alignItems: "center",
           position: "relative",
           overflow: "hidden",
-          paddingTop: "72px",
+          paddingTop: "50px",
         }}
       >
         {/* Atmospheric glows */}
@@ -62,9 +66,9 @@ export default function HeroSection() {
         <div
           style={{
             position: "absolute",
-            top: "90px",
+            top: "220px",
             right: "50px",
-            bottom: "40px",
+            bottom: "100px",
             width: "50%",
             zIndex: 1,
             overflow: "hidden",
@@ -97,47 +101,7 @@ export default function HeroSection() {
           <div style={{ marginLeft: "-40px" }}>
 
             {/* Star trust badge — above the fold, first thing seen */}
-            <div
-              className="hl-fade-1"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "20px",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "rgba(196, 151, 90, 0.08)",
-                  border: "1px solid rgba(196, 151, 90, 0.22)",
-                  borderRadius: "9999px",
-                  padding: "6px 16px",
-                }}
-              >
-                {/* Stars */}
-                <span style={{ display: "flex", gap: "2px" }}>
-                  {[0,1,2,3,4].map((i) => (
-                    <svg key={i} width="13" height="13" viewBox="0 0 16 16" fill="#C4975A" aria-hidden="true">
-                      <path d="M8 1.5l1.75 3.55 3.91.57-2.83 2.76.67 3.9L8 10.27l-3.5 1.01.67-3.9L2.34 5.62l3.91-.57z"/>
-                    </svg>
-                  ))}
-                </span>
-                <span
-                  style={{
-                    color: "#7A6240",
-                    fontSize: "12.5px",
-                    fontFamily: "var(--font-dm-sans)",
-                    fontWeight: "600",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  4.9 · 200+ families · Same-day bookings
-                </span>
-              </div>
-            </div>
+  
 
             {/* Eyebrow */}
             <div
@@ -150,7 +114,7 @@ export default function HeroSection() {
                 border: "1px solid rgba(24, 92, 69, 0.14)",
                 borderRadius: "9999px",
                 padding: "6px 14px",
-                marginBottom: "28px",
+                marginBottom: "12px",
               }}
             >
               <BadgeCheck size={14} color="#185C45" strokeWidth={2} style={{ flexShrink: 0 }} />
@@ -245,7 +209,7 @@ export default function HeroSection() {
               style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "32px" }}
             >
               <a
-                href="#"
+                href="/book"
                 className="hl-btn-primary"
                 style={{ fontSize: "15px", padding: "15px 34px" }}
               >
@@ -260,13 +224,13 @@ export default function HeroSection() {
                   />
                 </svg>
               </a>
-              <a
-                href="#"
+              <button
+                onClick={() => setShowFamilyModal(true)}
                 className="hl-btn-secondary"
-                style={{ fontSize: "15px", padding: "15px 28px" }}
+                style={{ fontSize: "15px", padding: "15px 28px", cursor: "pointer" }}
               >
                 See Family Plan
-              </a>
+              </button>
             </div>
 
             {/* Trust signals */}

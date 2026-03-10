@@ -724,8 +724,26 @@
 }
 .hl-review-card:hover {
   border-color: rgba(26, 92, 68, 0.20);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(22, 41, 32, 0.06), 0 2px 4px rgba(22, 41, 32, 0.03);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(22, 41, 32, 0.09), 0 2px 6px rgba(22, 41, 32, 0.04);
+}
+
+/* ─── Reviews Grid Responsive ────────────── */
+.hl-reviews-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 860px) {
+  .hl-reviews-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .hl-reviews-grid > * {
+    grid-column: auto !important;
+  }
+}
+@media (max-width: 560px) {
+  .hl-reviews-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* ─── Floating & Chat Animations ─────────── */
@@ -788,6 +806,46 @@ input[type="range"].hl-slider::-moz-range-thumb {
   transition: opacity 0.2s;
 }
 .hl-footer-legal-link:hover { opacity: 1; }
+
+/* ─── Dark Footer Links ──────────────────── */
+.hl-fdark-link {
+  color: rgba(190, 218, 200, 0.45);
+  text-decoration: none;
+  font-size: 14px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+.hl-fdark-link:hover {
+  color: #E8E5DE;
+  transform: translateX(3px);
+}
+
+.hl-fdark-legal {
+  color: rgba(190, 218, 200, 0.28);
+  text-decoration: none;
+  font-size: 12px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  transition: color 0.2s ease;
+}
+.hl-fdark-legal:hover { color: rgba(190, 218, 200, 0.65); }
+
+/* ─── Footer Grid Responsive ─────────────── */
+.hl-footer-grid {
+  grid-template-columns: 1.4fr 1fr 1fr 1fr !important;
+}
+@media (max-width: 900px) {
+  .hl-footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 36px !important;
+  }
+}
+@media (max-width: 520px) {
+  .hl-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+}
 
 /* ─── Principle Row ──────────────────────── */
 .hl-principle {

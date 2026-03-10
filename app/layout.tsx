@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "HealthLuma — AI-Powered Family Practice",
   description:
-    "Book appointments online, get AI-guided care recommendations, and save 20% on every visit with Family Care membership — for your entire family, all year.",
+    "Book appointments online, get AI-guided care recommendations, and save 20% on every visit with yearly membership plan , for your entire family, all year.",
 };
 
 export default function RootLayout({
@@ -33,11 +34,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${playfair.variable} ${dmSans.variable} antialiased`}
+        suppressHydrationWarning
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

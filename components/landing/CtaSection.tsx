@@ -1,7 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import ScrollReveal from "./ScrollReveal";
+import FamilyPlanModal from "./FamilyPlanModal";
 
 export default function CtaSection() {
+  const [showModal, setShowModal] = useState(false);
+
   return (
+    <>
+      {showModal && <FamilyPlanModal onClose={() => setShowModal(false)} />}
     <section
       className="hl-section-surface"
       style={{
@@ -124,7 +132,7 @@ export default function CtaSection() {
               }}
             >
               <a
-                href="#"
+                href="/book"
                 className="hl-btn-primary"
                 style={{ fontSize: "16px", padding: "17px 42px" }}
               >
@@ -139,10 +147,10 @@ export default function CtaSection() {
                   />
                 </svg>
               </a>
-              <a
-                href="#"
+              <button
+                onClick={() => setShowModal(true)}
                 className="hl-btn-secondary"
-                style={{ fontSize: "16px", padding: "17px 42px" }}
+                style={{ fontSize: "16px", padding: "17px 42px", cursor: "pointer" }}
               >
                 See Family Plan
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -154,7 +162,7 @@ export default function CtaSection() {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </a>
+              </button>
             </div>
 
             {/* Pricing transparency */}
@@ -172,5 +180,6 @@ export default function CtaSection() {
         </ScrollReveal>
       </div>
     </section>
+    </>
   );
 }

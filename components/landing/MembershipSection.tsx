@@ -38,6 +38,7 @@ export default function MembershipSection() {
     {/* Gold divider — intentional signal that dark section follows */}
     <hr className="hl-gold-divider" />
     <section
+      id="pricing"
       className="hl-section-dark"
       style={{
         padding: "108px 0",

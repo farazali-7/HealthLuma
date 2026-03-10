@@ -1,214 +1,64 @@
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+"use client";
 
-const QUICK_LINKS = ["Home", "About", "Services", "Pricing", "FAQ"];
-const PATIENT_LINKS = [
-  "Book Appointment",
-  "Register",
-  "Login",
-  "Family Care",
+const NAV_LINKS = [
+  { label: "About",    href: "/about" },
+  { label: "Services", href: "/services" },
+  { label: "Pricing",  href: "/pricing" },
+  { label: "Contact",  href: "/contact" },
+];
+
+const SERVICE_LINKS = [
+  { label: "General Consultation", href: "/services" },
+  { label: "Pediatric Care",        href: "/services" },
+  { label: "Family Health Plan",    href: "/pricing" },
+  { label: "Preventive Care",       href: "/services" },
+  { label: "Follow-Up Visit",       href: "/services" },
+];
+
+const SUPPORT_LINKS = [
+  { label: "Help Center",    href: "/contact" },
+  { label: "FAQs",           href: "/pricing#faq" },
+  { label: "Privacy Policy", href: "#" },
+  { label: "Terms of Service", href: "#" },
+  { label: "Medical Disclaimer", href: "#" },
 ];
 
 export default function Footer() {
   return (
     <footer
       style={{
-        background: "#FFFFFF",
-        borderTop: "1px solid #E4E6E4",
+        background: "#0C1810",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* Main Footer Grid */}
+      {/* ── Watermark ──────────────────────────── */}
       <div
-        className="hl-container"
-        style={{ padding: "64px 24px 48px" }}
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          bottom: "-24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontFamily: "var(--font-playfair)",
+          fontSize: "clamp(80px, 14vw, 160px)",
+          fontWeight: "800",
+          color: "rgba(255,255,255,0.025)",
+          letterSpacing: "-0.04em",
+          whiteSpace: "nowrap",
+          userSelect: "none",
+          lineHeight: "1",
+          pointerEvents: "none",
+        }}
       >
-        <div
-          className="hl-four-col"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "40px",
-          }}
-        >
-          {/* Column 1 — Brand */}
-          <div>
-            <a
-              href="#"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                textDecoration: "none",
-                marginBottom: "14px",
-              }}
-            >
-              <span className="hl-logo-dot" />
-              <span
-                style={{
-                  fontFamily: "var(--font-playfair)",
-                  fontSize: "18px",
-                  fontWeight: "700",
-                  color: "#162920",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                HealthLuma
-              </span>
-            </a>
-            <p
-              style={{
-                color: "#7C9488",
-                fontSize: "13px",
-                fontFamily: "var(--font-dm-sans)",
-                lineHeight: "1.65",
-                marginBottom: "20px",
-                maxWidth: "200px",
-              }}
-            >
-              AI-powered care for modern families.
-            </p>
-            <p
-              style={{
-                color: "#7C9488",
-                fontSize: "12px",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              © 2026 HealthLuma.
-            </p>
-          </div>
-
-          {/* Column 2 — Quick Links */}
-          <div>
-            <div
-              style={{
-                color: "#476355",
-                fontSize: "11px",
-                fontFamily: "var(--font-dm-sans)",
-                fontWeight: "600",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                marginBottom: "20px",
-              }}
-            >
-              Quick Links
-            </div>
-            <ul
-              style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              {QUICK_LINKS.map((link) => (
-                <li key={link}>
-                  <a href="#" className="hl-footer-link">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 3 — For Patients */}
-          <div>
-            <div
-              style={{
-                color: "#476355",
-                fontSize: "11px",
-                fontFamily: "var(--font-dm-sans)",
-                fontWeight: "600",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                marginBottom: "20px",
-              }}
-            >
-              For Patients
-            </div>
-            <ul
-              style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              {PATIENT_LINKS.map((link) => (
-                <li key={link}>
-                  <a href="#" className="hl-footer-link">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 4 — Contact */}
-          <div>
-            <div
-              style={{
-                color: "#476355",
-                fontSize: "11px",
-                fontFamily: "var(--font-dm-sans)",
-                fontWeight: "600",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                marginBottom: "20px",
-              }}
-            >
-              Contact
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              {[
-                {
-                  Icon: MapPin,
-                  text: "123 Care Street, Suite 100",
-                },
-                {
-                  Icon: Phone,
-                  text: "(555) 123-4567",
-                },
-                {
-                  Icon: Mail,
-                  text: "hello@healthluma.com",
-                },
-                {
-                  Icon: Clock,
-                  text: "Mon–Fri: 9AM–6PM",
-                },
-              ].map(({ Icon, text }, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                  }}
-                >
-                  <Icon
-                    size={14}
-                    color="#7C9488"
-                    style={{ flexShrink: 0, marginTop: "2px" }}
-                    strokeWidth={1.75}
-                  />
-                  <span
-                    style={{
-                      color: "#476355",
-                      fontSize: "14px",
-                      fontFamily: "var(--font-dm-sans)",
-                      lineHeight: "1.5",
-                    }}
-                  >
-                    {text}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        HealthLuma
       </div>
 
-      {/* Bottom Bar */}
+      {/* ── CTA Strip ──────────────────────────── */}
       <div
         style={{
-          borderTop: "1px solid #E4E6E4",
-          padding: "20px 0",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          padding: "32px 0",
         }}
       >
         <div
@@ -218,60 +68,258 @@ export default function Footer() {
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
-            gap: "12px",
+            gap: "20px",
           }}
         >
-          <p
+          <div>
+            <div
+              style={{
+                fontFamily: "var(--font-playfair)",
+                fontSize: "clamp(18px, 2.5vw, 22px)",
+                fontWeight: "700",
+                color: "#E8E5DE",
+                letterSpacing: "-0.02em",
+                lineHeight: "1.2",
+                marginBottom: "6px",
+              }}
+            >
+              Need to see Dr. Jack?
+            </div>
+            <p
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "14px",
+                color: "rgba(190,218,200,0.45)",
+                margin: 0,
+              }}
+            >
+              Same-week appointments available. Book in under 2 minutes.
+            </p>
+          </div>
+
+          <a
+            href="/book"
             style={{
-              color: "#7C9488",
-              fontSize: "12px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#C4975A",
+              color: "#FFFFFF",
               fontFamily: "var(--font-dm-sans)",
-              margin: 0,
+              fontWeight: "600",
+              fontSize: "14px",
+              padding: "12px 22px",
+              borderRadius: "12px",
+              textDecoration: "none",
+              letterSpacing: "-0.01em",
+              flexShrink: 0,
+              transition: "background 0.2s, transform 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "#B8883E";
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "#C4975A";
+              (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
             }}
           >
-            © 2026 HealthLuma. All rights reserved.
-          </p>
-          <div style={{ display: "flex", gap: "24px" }}>
-            {["Privacy Policy", "Terms of Service", "Medical Disclaimer"].map(
-              (link) => (
-                <a
-                  key={link}
-                  href="#"
-                  className="hl-footer-legal-link"
-                >
-                  {link}
-                </a>
-              )
-            )}
-          </div>
+            Book Appointment
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
         </div>
       </div>
 
-      {/* Medical Disclaimer */}
+      {/* ── Main Grid ──────────────────────────── */}
       <div
-        style={{
-          borderTop: "1px solid #E4E6E4",
-          padding: "16px 0",
-        }}
+        className="hl-container"
+        style={{ padding: "64px 24px 56px", position: "relative", zIndex: 1 }}
       >
-        <div className="hl-container">
-          <p
-            style={{
-              color: "rgba(124, 148, 136, 0.7)",
-              fontSize: "11px",
-              fontFamily: "var(--font-dm-sans)",
-              lineHeight: "1.6",
-              textAlign: "center",
-              maxWidth: "720px",
-              margin: "0 auto",
-            }}
-          >
-            HealthLuma AI provides general guidance only and does not
-            diagnose, prescribe, or provide medical treatment. Always consult
-            your doctor for medical advice. In an emergency, call 911.
-          </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
+            gap: "48px",
+          }}
+          className="hl-footer-grid"
+        >
+          {/* Column 1 — Brand */}
+          <div>
+            {/* Logo */}
+            <a
+              href="/"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "9px",
+                textDecoration: "none",
+                marginBottom: "18px",
+              }}
+            >
+              <div
+                style={{
+                  width: "26px",
+                  height: "26px",
+                  borderRadius: "7px",
+                  background: "linear-gradient(135deg, #1A5C44 0%, #2E7D5E 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 2px 8px rgba(26,92,68,0.45)",
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <rect x="5" y="1" width="3" height="11" rx="1.2" fill="white"/>
+                  <rect x="1" y="5" width="11" height="3" rx="1.2" fill="white"/>
+                </svg>
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-playfair)",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#E8E5DE",
+                  letterSpacing: "-0.025em",
+                  lineHeight: "1",
+                }}
+              >
+                HealthLuma
+              </span>
+            </a>
+
+            <p
+              style={{
+                color: "rgba(190,218,200,0.45)",
+                fontSize: "13.5px",
+                fontFamily: "var(--font-dm-sans)",
+                lineHeight: "1.7",
+                marginBottom: "24px",
+                maxWidth: "220px",
+              }}
+            >
+              Modern family healthcare — fast appointments, thoughtful care,
+              and an AI assistant that actually helps.
+            </p>
+
+            {/* Trust badges */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {[
+                "Family Medicine · General Practice",
+                "CCFP Certified · 15 Years Experience",
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "11px",
+                    color: "rgba(190,218,200,0.35)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "4px",
+                      height: "4px",
+                      borderRadius: "50%",
+                      background: "rgba(196,151,90,0.5)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Column 2 — Navigate */}
+          <FooterColumn label="Navigate" links={NAV_LINKS} />
+
+          {/* Column 3 — Services */}
+          <FooterColumn label="Services" links={SERVICE_LINKS} />
+
+          {/* Column 4 — Support */}
+          <FooterColumn label="Support" links={SUPPORT_LINKS} />
         </div>
       </div>
+
+      {/* ── Divider ────────────────────────────── */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }} />
+
+      {/* ── Bottom Bar ─────────────────────────── */}
+      <div
+        className="hl-container"
+        style={{
+          padding: "20px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "12px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <p
+          style={{
+            color: "rgba(190,218,200,0.25)",
+            fontSize: "12px",
+            fontFamily: "var(--font-dm-sans)",
+            margin: 0,
+          }}
+        >
+          © 2026 HealthLuma. All rights reserved.
+        </p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "28px", flexWrap: "wrap" }}>
+          {["Privacy Policy", "Terms of Service", "Medical Disclaimer"].map((link) => (
+            <a key={link} href="#" className="hl-fdark-legal">
+              {link}
+            </a>
+          ))}
+        </div>
+      </div>
+
     </footer>
+  );
+}
+
+// ─── Sub-component ─────────────────────────
+function FooterColumn({
+  label,
+  links,
+}: {
+  label: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "11px",
+          fontWeight: "700",
+          letterSpacing: "0.13em",
+          textTransform: "uppercase",
+          color: "rgba(196,151,90,0.65)",
+          marginBottom: "20px",
+        }}
+      >
+        {label}
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "13px" }}>
+        {links.map((link) => (
+          <li key={link.label}>
+            <a href={link.href} className="hl-fdark-link">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

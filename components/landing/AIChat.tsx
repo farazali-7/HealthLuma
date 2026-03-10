@@ -394,7 +394,7 @@ function AIChatPanel({ onClose }: { onClose: () => void }) {
     <div
       style={{
         position: "fixed",
-        bottom: "88px",
+        bottom: "60px",
         right: "28px",
         width: "380px",
         maxWidth: "calc(100vw - 32px)",

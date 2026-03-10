@@ -13,10 +13,7 @@ const PRO_FEATURES = [
   "Priority booking — earlier slot access",
   "Family coverage — up to 4 members",
   "Extended AI health companion",
-  "Digital prescription archive",
   "Same-day urgent booking",
-  "Health tracking dashboard",
-  "SMS + Email appointment reminders",
 ];
 
 export default function TwoCardSection() {

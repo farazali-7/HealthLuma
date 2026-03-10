@@ -39,8 +39,6 @@ export default function HomePage() {
         {/* 8. Reviews — social proof before the final push */}
         <ReviewsSection />
 
-        {/* 9. CTA — close */}
-        <CtaSection />
       </main>
       <Footer />
     </div>

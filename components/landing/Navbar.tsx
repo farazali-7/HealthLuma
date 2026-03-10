@@ -5,10 +5,10 @@ import { Menu, X } from "lucide-react";
 
 // "Home" removed — logo handles that. "About Doctor" → "About" for scannability.
 const NAV_LINKS = [
-  { label: "About",    href: "#about" },
-  { label: "Services", href: "#services" },
-  { label: "Pricing",  href: "#pricing" },
-  { label: "Contact",  href: "#contact" },
+  { label: "About",    href: "/about" },
+  { label: "Services", href: "/services" },
+  { label: "Pricing",  href: "/pricing" },
+  { label: "Contact",  href: "/contact" },
 ];
 
 export default function Navbar() {
@@ -62,7 +62,7 @@ export default function Navbar() {
         >
           {/* ── Logo ── */}
           <a
-            href="#"
+            href="/"
             style={{
               display: "flex",
               alignItems: "center",
@@ -140,7 +140,7 @@ export default function Navbar() {
             </a>
 
             {/* Primary CTA */}
-            <a href="/signup" className="hl-nav-book">
+            <a href="/book" className="hl-nav-book">
               Book Appointment
             </a>
           </nav>
@@ -269,7 +269,7 @@ export default function Navbar() {
                 Log in
               </a>
               <a
-                href="/signup"
+                href="/book"
                 onClick={() => setMobileOpen(false)}
                 style={{
                   flex: 2,
