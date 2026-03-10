@@ -12,7 +12,7 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: "#F6F7F6",
+        background: "#FFFFFF",
         borderTop: "1px solid #E4E6E4",
       }}
     >

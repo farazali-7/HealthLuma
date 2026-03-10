@@ -30,7 +30,7 @@ const PRINCIPLES = [
 export default function TrustSection() {
   return (
     <section
-      className="hl-section-surface"
+      className="hl-section-dark"
       style={{ padding: "108px 0" }}
     >
       <div className="hl-container">
@@ -136,24 +136,30 @@ export default function TrustSection() {
                   borderRadius: "14px",
                 }}
               >
+                {/* Illustrated doctor avatar */}
                 <div
                   style={{
-                    width: "44px",
-                    height: "44px",
+                    width: "48px",
+                    height: "48px",
                     borderRadius: "50%",
-                    background: "rgba(24, 92, 69, 0.08)",
-                    border: "1px solid rgba(24, 92, 69, 0.16)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    border: "1.5px solid rgba(24, 92, 69, 0.16)",
                     flexShrink: 0,
-                    fontFamily: "var(--font-playfair)",
-                    fontSize: "16px",
-                    fontWeight: "700",
-                    color: "#185C45",
+                    overflow: "hidden",
+                    background: "rgba(24, 92, 69, 0.06)",
                   }}
                 >
-                  JH
+                  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
+                    {/* Background */}
+                    <circle cx="24" cy="24" r="24" fill="rgba(24,92,69,0.07)"/>
+                    {/* Head */}
+                    <circle cx="24" cy="18" r="9" fill="#2A7A56"/>
+                    {/* Coat collar white */}
+                    <path d="M15 48c0-9 4-15 9-15s9 6 9 15" fill="#FFFFFF"/>
+                    {/* Doctor coat */}
+                    <path d="M13 48c0-10 5-17 11-17s11 7 11 17" fill="#1A5C44"/>
+                    {/* Stethoscope hint */}
+                    <circle cx="24" cy="35" r="2.5" fill="rgba(196,151,90,0.7)" stroke="#C4975A" strokeWidth="0.5"/>
+                  </svg>
                 </div>
                 <div>
                   <div

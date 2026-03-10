@@ -3,57 +3,98 @@ import ScrollReveal from "./ScrollReveal";
 export default function CtaSection() {
   return (
     <section
-      className="hl-section-dark"
+      className="hl-section-surface"
       style={{
         padding: "120px 0",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Background atmosphere */}
+      {/* Background atmosphere — green + gold dual glow */}
       <div
         style={{
           position: "absolute",
-          width: "600px",
-          height: "600px",
+          width: "700px",
+          height: "700px",
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(24, 92, 69, 0.06) 0%, transparent 65%)",
-          left: "50%",
+            "radial-gradient(circle, rgba(24, 92, 69, 0.07) 0%, transparent 60%)",
+          left: "30%",
           top: "50%",
           transform: "translate(-50%, -50%)",
+          filter: "blur(50px)",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          width: "400px",
+          height: "400px",
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(196, 151, 90, 0.08) 0%, transparent 65%)",
+          right: "20%",
+          top: "40%",
+          transform: "translate(50%, -50%)",
           filter: "blur(40px)",
           pointerEvents: "none",
         }}
       />
 
-      <div
-        className="hl-container"
-        style={{ position: "relative" }}
-      >
+      <div className="hl-container" style={{ position: "relative" }}>
         <ScrollReveal>
           <div
             style={{
               textAlign: "center",
-              maxWidth: "600px",
+              maxWidth: "640px",
               margin: "0 auto",
             }}
           >
-            {/* Headline */}
+            {/* Gold label */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "rgba(196, 151, 90, 0.08)",
+                border: "1px solid rgba(196, 151, 90, 0.22)",
+                borderRadius: "9999px",
+                padding: "5px 16px",
+                marginBottom: "28px",
+              }}
+            >
+              <span
+                style={{
+                  color: "#7A6240",
+                  fontSize: "11px",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontWeight: "700",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Start today — no waiting room required
+              </span>
+            </div>
+
+            {/* Headline — punchy, specific, action-driven */}
             <h2
               style={{
                 fontFamily: "var(--font-playfair)",
-                fontSize: "clamp(30px, 4vw, 48px)",
+                fontSize: "clamp(32px, 4.5vw, 58px)",
                 fontWeight: "800",
                 color: "#162920",
-                lineHeight: "1.12",
+                lineHeight: "1.1",
                 letterSpacing: "-0.025em",
-                marginBottom: "20px",
+                marginBottom: "22px",
               }}
             >
-              Your Family&apos;s Health Deserves
+              One login.
               <br />
-              a Better System.
+              Your whole family.
+              <br />
+              <span style={{ color: "#185C45" }}>Zero phone calls.</span>
             </h2>
 
             {/* Subheadline */}
@@ -63,38 +104,32 @@ export default function CtaSection() {
                 fontSize: "17px",
                 fontFamily: "var(--font-dm-sans)",
                 lineHeight: "1.65",
-                maxWidth: "460px",
+                maxWidth: "480px",
                 margin: "0 auto 40px",
               }}
             >
               Book your first appointment in under 60 seconds.{" "}
               <span style={{ color: "#162920" }}>No phone call.</span> No
-              registration hassle. Just care.
+              registration hassle. Just care, on your schedule.
             </p>
 
             {/* Buttons */}
             <div
               style={{
                 display: "flex",
-                gap: "16px",
+                gap: "14px",
                 justifyContent: "center",
                 flexWrap: "wrap",
-                marginBottom: "20px",
+                marginBottom: "24px",
               }}
             >
               <a
                 href="#"
                 className="hl-btn-primary"
-                style={{ fontSize: "17px", padding: "18px 44px" }}
+                style={{ fontSize: "16px", padding: "17px 42px" }}
               >
                 Book Appointment
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path
                     d="M3 8h10M9 4l4 4-4 4"
                     stroke="currentColor"
@@ -107,16 +142,10 @@ export default function CtaSection() {
               <a
                 href="#"
                 className="hl-btn-secondary"
-                style={{ fontSize: "17px", padding: "18px 44px" }}
+                style={{ fontSize: "16px", padding: "17px 42px" }}
               >
-                Explore Family Care
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                >
+                See Family Plan
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path
                     d="M3 8h10M9 4l4 4-4 4"
                     stroke="currentColor"

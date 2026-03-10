@@ -166,7 +166,7 @@ export default function ProblemSection() {
                 whiteSpace: "nowrap",
               }}
             >
-              HealthLuma replaces all of this with one system
+              One login. One booking. Zero phone calls.
             </span>
             <div
               style={{

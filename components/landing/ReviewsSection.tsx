@@ -2,7 +2,17 @@ import ScrollReveal from "./ScrollReveal";
 
 const REVIEWS = [
   {
-    initials: "SM",
+    avatar: (
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "40px", height: "40px" }}>
+        <circle cx="20" cy="20" r="20" fill="#E6F3ED"/>
+        {/* Head */}
+        <circle cx="20" cy="15" r="7" fill="#3A8C62"/>
+        {/* Hair */}
+        <path d="M13 14c0-4 3-7 7-7s7 3 7 7" fill="#1A3D2B"/>
+        {/* Body */}
+        <path d="M9 40c0-8 5-13 11-13s11 5 11 13" fill="#3A8C62"/>
+      </svg>
+    ),
     name: "Sarah M.",
     context: "Mother of two · Pro Member",
     date: "Feb 2026",
@@ -11,7 +21,17 @@ const REVIEWS = [
       "I booked my son's appointment at 11pm while he was running a fever. Priority slot confirmed by morning. That used to require three phone calls and a half-day off work.",
   },
   {
-    initials: "JK",
+    avatar: (
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "40px", height: "40px" }}>
+        <circle cx="20" cy="20" r="20" fill="#EDF4F0"/>
+        {/* Head */}
+        <circle cx="20" cy="15" r="7" fill="#2D6E4E"/>
+        {/* Short hair */}
+        <path d="M13 13c0-4 3-6 7-6s7 2 7 6v1h-14z" fill="#162920"/>
+        {/* Body */}
+        <path d="M9 40c0-8 5-13 11-13s11 5 11 13" fill="#2D6E4E"/>
+      </svg>
+    ),
     name: "James K.",
     context: "Family of four · Pro Member",
     date: "Jan 2026",
@@ -20,7 +40,17 @@ const REVIEWS = [
       "Pro plan covers me, my wife, and both kids. We had 12 visits last year and saved over $90 on consultations alone. The family dashboard makes scheduling feel like nothing.",
   },
   {
-    initials: "RT",
+    avatar: (
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "40px", height: "40px" }}>
+        <circle cx="20" cy="20" r="20" fill="#F0F5F2"/>
+        {/* Head */}
+        <circle cx="20" cy="15" r="7" fill="#4A8C6A"/>
+        {/* Long hair */}
+        <path d="M13 15c0-4 3-8 7-8s7 4 7 8l2 8h-18z" fill="#8B5E3C"/>
+        {/* Body */}
+        <path d="M9 40c0-8 5-13 11-13s11 5 11 13" fill="#4A8C6A"/>
+      </svg>
+    ),
     name: "Rachel T.",
     context: "Working professional · Standard",
     date: "Feb 2026",
@@ -33,7 +63,7 @@ const REVIEWS = [
 export default function ReviewsSection() {
   return (
     <section
-      className="hl-section-surface"
+      className="hl-section-dark"
       style={{ padding: "108px 0" }}
     >
       <div className="hl-container">
@@ -129,25 +159,18 @@ export default function ReviewsSection() {
                     gap: "12px",
                   }}
                 >
-                  {/* Avatar */}
+                  {/* Illustrated avatar */}
                   <div
                     style={{
                       width: "40px",
                       height: "40px",
                       borderRadius: "50%",
-                      background: "rgba(24, 92, 69, 0.07)",
                       border: "1px solid rgba(24, 92, 69, 0.14)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#185C45",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-playfair)",
-                      fontWeight: "700",
                       flexShrink: 0,
+                      overflow: "hidden",
                     }}
                   >
-                    {review.initials}
+                    {review.avatar}
                   </div>
 
                   {/* Name + context */}

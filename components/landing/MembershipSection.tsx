@@ -34,7 +34,17 @@ export default function MembershipSection() {
   const breakEvenVisits = Math.ceil(MEMBERSHIP_FEE / (VISIT_COST - MEMBER_COST)); // = 8
 
   return (
-    <section className="hl-section-dark" style={{ padding: "108px 0" }}>
+    <>
+    {/* Gold divider — intentional signal that dark section follows */}
+    <hr className="hl-gold-divider" />
+    <section
+      className="hl-section-dark"
+      style={{
+        padding: "108px 0",
+        background: "#0D1612",
+        borderTop: "1px solid rgba(196,151,90,0.12)",
+      }}
+    >
       <div className="hl-container">
         {/* Section Header */}
         <ScrollReveal>
@@ -52,7 +62,7 @@ export default function MembershipSection() {
               }}
             >
               One Plan. Your Whole Family.{" "}
-              <span style={{ color: "#4ECDC4" }}>$150/year.</span>
+              <span style={{ color: "#C4975A" }}>$150/year.</span>
             </h2>
             <p
               style={{
@@ -94,7 +104,7 @@ export default function MembershipSection() {
                     fontFamily: "var(--font-playfair)",
                     fontSize: "52px",
                     fontWeight: "700",
-                    color: "#4ECDC4",
+                    color: "#C4975A",
                     lineHeight: "1",
                     marginBottom: "8px",
                     letterSpacing: "-0.02em",
@@ -190,7 +200,7 @@ export default function MembershipSection() {
                     fontFamily: "var(--font-playfair)",
                     fontSize: "28px",
                     fontWeight: "700",
-                    color: "#4ECDC4",
+                    color: "#C4975A",
                   }}
                 >
                   {visits}
@@ -282,15 +292,15 @@ export default function MembershipSection() {
               {/* With */}
               <div
                 style={{
-                  background: "rgba(78, 205, 196, 0.05)",
-                  border: "1px solid rgba(78, 205, 196, 0.12)",
+                  background: "rgba(196, 151, 90, 0.07)",
+                  border: "1px solid rgba(196, 151, 90, 0.22)",
                   borderRadius: "14px",
                   padding: "20px",
                 }}
               >
                 <div
                   style={{
-                    color: "#4ECDC4",
+                    color: "#C4975A",
                     fontSize: "12px",
                     fontFamily: "var(--font-dm-sans)",
                     fontWeight: "600",
@@ -331,11 +341,11 @@ export default function MembershipSection() {
                 padding: "16px 20px",
                 background:
                   savings > 0
-                    ? "rgba(78, 205, 196, 0.06)"
+                    ? "rgba(196, 151, 90, 0.09)"
                     : "rgba(237, 232, 224, 0.03)",
                 border:
                   savings > 0
-                    ? "1px solid rgba(78, 205, 196, 0.15)"
+                    ? "1px solid rgba(196, 151, 90, 0.28)"
                     : "1px solid rgba(42, 50, 48, 0.5)",
                 textAlign: "center",
               }}
@@ -343,7 +353,7 @@ export default function MembershipSection() {
               {savings > 0 ? (
                 <p
                   style={{
-                    color: "#4ECDC4",
+                    color: "#C4975A",
                     fontSize: "15px",
                     fontFamily: "var(--font-dm-sans)",
                     fontWeight: "600",
@@ -419,5 +429,7 @@ export default function MembershipSection() {
         </ScrollReveal>
       </div>
     </section>
+    <hr className="hl-gold-divider" />
+    </>
   );
 }

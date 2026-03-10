@@ -169,14 +169,15 @@ export default function TwoCardSection() {
                   position: "absolute",
                   top: "-1px",
                   right: "28px",
-                  background: "#185C45",
+                  background: "#C4975A",
                   color: "#FFFFFF",
                   fontSize: "10px",
                   fontWeight: "800",
                   fontFamily: "var(--font-dm-sans)",
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.12em",
                   padding: "5px 14px",
                   borderRadius: "0 0 10px 10px",
+                  boxShadow: "0 2px 10px rgba(196,151,90,0.30)",
                 }}
               >
                 BEST VALUE
