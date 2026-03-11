@@ -30,7 +30,7 @@ export default function HeroSection() {
           alignItems: "center",
           position: "relative",
           overflow: "hidden",
-          paddingTop: "50px",
+          paddingTop: "15px",
         }}
       >
         {/* Atmospheric glows */}

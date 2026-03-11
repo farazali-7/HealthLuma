@@ -41,7 +41,7 @@ export default function MembershipSection() {
       id="pricing"
       className="hl-section-dark"
       style={{
-        padding: "108px 0",
+        padding: "50px 0",
         background: "#0D1612",
         borderTop: "1px solid rgba(196,151,90,0.12)",
       }}
@@ -49,7 +49,7 @@ export default function MembershipSection() {
       <div className="hl-container">
         {/* Section Header */}
         <ScrollReveal>
-          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
             <span className="hl-section-label">Family Care Membership</span>
             <h2
               style={{
@@ -85,7 +85,7 @@ export default function MembershipSection() {
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
             gap: "24px",
-            marginBottom: "64px",
+            marginBottom: "44px",
           }}
         >
           {VALUE_CARDS.map((card, i) => (
@@ -94,8 +94,8 @@ export default function MembershipSection() {
                 style={{
                   background: "#0F1413",
                   border: "1px solid #1E2826",
-                  borderRadius: "20px",
-                  padding: "40px 32px",
+                  borderRadius: "16px",
+                  padding: "28px 24px",
                   textAlign: "center",
                   height: "100%",
                 }}
@@ -103,11 +103,11 @@ export default function MembershipSection() {
                 <div
                   style={{
                     fontFamily: "var(--font-playfair)",
-                    fontSize: "52px",
+                    fontSize: "42px",
                     fontWeight: "700",
                     color: "#C4975A",
                     lineHeight: "1",
-                    marginBottom: "8px",
+                    marginBottom: "6px",
                     letterSpacing: "-0.02em",
                   }}
                 >
@@ -116,12 +116,12 @@ export default function MembershipSection() {
                 <div
                   style={{
                     color: "#EDE8E0",
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontFamily: "var(--font-dm-sans)",
                     fontWeight: "600",
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    marginBottom: "16px",
+                    marginBottom: "12px",
                   }}
                 >
                   {card.label}
@@ -129,7 +129,7 @@ export default function MembershipSection() {
                 <p
                   style={{
                     color: "#7D8A85",
-                    fontSize: "14px",
+                    fontSize: "13px",
                     fontFamily: "var(--font-dm-sans)",
                     lineHeight: "1.65",
                     margin: 0,
@@ -148,20 +148,20 @@ export default function MembershipSection() {
             style={{
               background: "#0F1413",
               border: "1px solid #1E2826",
-              borderRadius: "24px",
-              padding: "48px",
-              maxWidth: "720px",
-              margin: "0 auto 56px",
+              borderRadius: "20px",
+              padding: "32px",
+              maxWidth: "620px",
+              margin: "0 auto 40px",
             }}
           >
-            <div style={{ textAlign: "center", marginBottom: "36px" }}>
+            <div style={{ textAlign: "center", marginBottom: "24px" }}>
               <h3
                 style={{
                   fontFamily: "var(--font-playfair)",
-                  fontSize: "24px",
+                  fontSize: "20px",
                   fontWeight: "600",
                   color: "#EDE8E0",
-                  marginBottom: "8px",
+                  marginBottom: "6px",
                 }}
               >
                 See How Much You Save
@@ -178,13 +178,13 @@ export default function MembershipSection() {
             </div>
 
             {/* Slider */}
-            <div style={{ marginBottom: "40px" }}>
+            <div style={{ marginBottom: "24px" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "16px",
+                  marginBottom: "12px",
                 }}
               >
                 <span
@@ -199,7 +199,7 @@ export default function MembershipSection() {
                 <span
                   style={{
                     fontFamily: "var(--font-playfair)",
-                    fontSize: "28px",
+                    fontSize: "22px",
                     fontWeight: "700",
                     color: "#C4975A",
                   }}
@@ -242,8 +242,8 @@ export default function MembershipSection() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "16px",
-                marginBottom: "24px",
+                gap: "12px",
+                marginBottom: "16px",
               }}
             >
               {/* Without */}
