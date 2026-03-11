@@ -18,16 +18,16 @@ import { Button } from "@/components/ui/button";
 const INVOICES = [
   {
     id: "INV-2026-024",
-    description: "Consultation — Dr. Sarah Ahmed",
+    description: "Follow-up Consultation — Dr. Jack",
     date: "Feb 10, 2026",
     amount: 100,
     status: "paid" as const,
   },
   {
     id: "INV-2026-008",
-    description: "Video Consultation — Dr. Ayesha Malik",
-    date: "Jan 28, 2026",
-    amount: 85,
+    description: "Consultation — Dr. Jack",
+    date: "Jan 22, 2026",
+    amount: 100,
     status: "paid" as const,
   },
   {
@@ -39,14 +39,14 @@ const INVOICES = [
   },
   {
     id: "INV-2025-198",
-    description: "Annual Physical — Dr. Sarah Ahmed",
+    description: "Annual Physical — Dr. Jack",
     date: "Oct 14, 2025",
-    amount: 150,
+    amount: 100,
     status: "paid" as const,
   },
   {
     id: "INV-2025-140",
-    description: "Follow-up Consultation",
+    description: "Follow-up Consultation — Dr. Jack",
     date: "Aug 2, 2025",
     amount: 100,
     status: "paid" as const,
@@ -90,7 +90,7 @@ export default function BillingPage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Current Plan
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-foreground">
@@ -124,11 +124,38 @@ export default function BillingPage() {
             </div>
           </div>
 
+          {/* Payment Method */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Payment Method
+                </p>
+                <h2 className="mt-0.5 text-sm font-semibold text-foreground">Saved card</h2>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+                Edit
+              </Button>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/20 px-4 py-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/50">
+                <CreditCard className="size-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">•••• •••• •••• 4242</p>
+                <p className="text-[11px] text-muted-foreground">Expires 08 / 28</p>
+              </div>
+              <span className="rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
+                Default
+              </span>
+            </div>
+          </div>
+
           {/* Invoice History */}
           <div className="rounded-2xl border border-border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   History
                 </p>
                 <h2 className="mt-0.5 text-sm font-semibold text-foreground">Invoices</h2>
@@ -195,7 +222,7 @@ export default function BillingPage() {
               </div>
               <div>
                 <p
-                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  className="text-[10px] font-semibold uppercase tracking-widest"
                   style={{ color: "#C4975A" }}
                 >
                   Upgrade

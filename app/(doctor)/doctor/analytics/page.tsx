@@ -29,19 +29,19 @@ import {
 // ─── Data ──────────────────────────────────────────────────────
 
 const MONTHLY_PATIENTS = [
-  { month: "Sep", patients: 62, newPatients: 8 },
+  { month: "Sep", patients: 62, newPatients: 8  },
   { month: "Oct", patients: 71, newPatients: 12 },
-  { month: "Nov", patients: 58, newPatients: 7 },
-  { month: "Dec", patients: 44, newPatients: 4 },
+  { month: "Nov", patients: 58, newPatients: 7  },
+  { month: "Dec", patients: 44, newPatients: 4  },
   { month: "Jan", patients: 68, newPatients: 11 },
   { month: "Feb", patients: 74, newPatients: 14 },
 ];
 
 const APPOINTMENT_TYPES = [
-  { name: "Follow-up",     value: 42, color: "#4D9A7F" },
-  { name: "New Patient",   value: 18, color: "#185C45" },
-  { name: "Annual Check",  value: 24, color: "#7FC4A8" },
-  { name: "Consultation",  value: 16, color: "#C4975A" },
+  { name: "Follow-up",    value: 42, color: "#4D9A7F" },
+  { name: "New Patient",  value: 18, color: "#185C45" },
+  { name: "Annual Check", value: 24, color: "#7FC4A8" },
+  { name: "Consultation", value: 16, color: "#C4975A" },
 ];
 
 const CONDITIONS_BREAKDOWN = [
@@ -49,9 +49,11 @@ const CONDITIONS_BREAKDOWN = [
   { condition: "Type 2 Diabetes", count: 18 },
   { condition: "Thyroid",         count: 14 },
   { condition: "Arthritis",       count: 11 },
-  { condition: "Anxiety/Mental",  count: 9 },
+  { condition: "Anxiety / Mental", count: 9 },
   { condition: "Other",           count: 38 },
 ];
+
+const CONDITION_COLORS = ["#4D9A7F", "#185C45", "#7FC4A8", "#C4975A", "#94A3B8", "#CBD5E1"];
 
 const WEEKLY_LOAD = [
   { day: "Mon", appts: 8 },
@@ -62,17 +64,25 @@ const WEEKLY_LOAD = [
 ];
 
 const KPI_STATS = [
-  { label: "Avg patients/day",  value: "7.4",  change: "+0.8", up: true,  icon: <Users className="size-3.5" /> },
-  { label: "Consultation time", value: "18 min", change: "-2 min", up: true,  icon: <Clock className="size-3.5" /> },
-  { label: "No-show rate",      value: "3.2%", change: "-0.5%", up: true,  icon: <Calendar className="size-3.5" /> },
-  { label: "Patient retention", value: "84%",  change: "+3%",   up: true,  icon: <Repeat className="size-3.5" /> },
-  { label: "Pro members",       value: "18",   change: "+4",    up: true,  icon: <Star className="size-3.5" /> },
-  { label: "Avg rating",        value: "4.9",  change: "stable", up: null, icon: <Activity className="size-3.5" /> },
+  { label: "Avg patients/day",  value: "7.4",    change: "+0.8",   up: true  as true,  icon: <Users className="size-3.5" />    },
+  { label: "Avg consult time",  value: "18 min", change: "−2 min", up: true  as true,  icon: <Clock className="size-3.5" />    },
+  { label: "No-show rate",      value: "3.2%",   change: "−0.5%",  up: true  as true,  icon: <Calendar className="size-3.5" /> },
+  { label: "Patient retention", value: "84%",    change: "+3%",    up: true  as true,  icon: <Repeat className="size-3.5" />   },
+  { label: "Pro members",       value: "18",     change: "+4",     up: true  as true,  icon: <Star className="size-3.5" />     },
+  { label: "Avg rating",        value: "4.9",    change: "stable", up: null  as null,  icon: <Activity className="size-3.5" /> },
 ];
 
 // ─── Tooltip helpers ────────────────────────────────────────────
 
-function SimpleTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+function SimpleTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border bg-popover px-3.5 py-2.5 shadow-lg">
@@ -80,8 +90,8 @@ function SimpleTooltip({ active, payload, label }: { active?: boolean; payload?:
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2 text-sm">
           <span className="size-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-foreground font-semibold">{p.value}</span>
-          <span className="text-muted-foreground text-xs">{p.name}</span>
+          <span className="font-semibold text-foreground">{p.value}</span>
+          <span className="text-xs text-muted-foreground">{p.name}</span>
         </div>
       ))}
     </div>
@@ -108,6 +118,7 @@ export default function AnalyticsPage() {
 
   const totalPatients = chartData.reduce((s, m) => s + m.patients, 0);
   const newPatients   = chartData.reduce((s, m) => s + m.newPatients, 0);
+  const condTotal     = CONDITIONS_BREAKDOWN.reduce((s, c) => s + c.count, 0);
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
@@ -143,7 +154,7 @@ export default function AnalyticsPage() {
         {KPI_STATS.map((kpi, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-start justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{kpi.label}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
               <span className="flex size-6 items-center justify-center rounded-lg bg-[#4D9A7F]/10 text-[#4D9A7F]">
                 {kpi.icon}
               </span>
@@ -152,8 +163,8 @@ export default function AnalyticsPage() {
               {kpi.value}
             </p>
             <div className="mt-1 flex items-center gap-1">
-              {kpi.up === true  && <TrendingUp  className="size-3 text-vault-positive" />}
-              {kpi.up === false && <TrendingDown className="size-3 text-vault-negative" />}
+              {kpi.up === true  && <TrendingUp   className="size-3 text-vault-positive" />}
+              {kpi.up === false && <TrendingDown  className="size-3 text-vault-negative" />}
               <span className={`text-[10px] font-medium ${
                 kpi.up === true ? "text-vault-positive" : kpi.up === false ? "text-vault-negative" : "text-muted-foreground"
               }`}>
@@ -171,7 +182,7 @@ export default function AnalyticsPage() {
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
           <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{PERIOD_LABELS[period]}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{PERIOD_LABELS[period]}</p>
               <h2 className="mt-0.5 text-sm font-semibold text-foreground">Patient Volume</h2>
             </div>
             <div className="flex gap-4 text-[11px] text-muted-foreground">
@@ -193,8 +204,8 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
                   <RechartsTooltip content={<SimpleTooltip />} />
-                  <Line type="monotone" dataKey="patients"    name="Total"   stroke="#4D9A7F" strokeWidth={2} dot={{ r: 3, fill: "#4D9A7F", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
-                  <Line type="monotone" dataKey="newPatients" name="New"     stroke="#C4975A" strokeWidth={2} dot={{ r: 3, fill: "#C4975A", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="patients"    name="Total" stroke="#4D9A7F" strokeWidth={2} dot={{ r: 3, fill: "#4D9A7F", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="newPatients" name="New"   stroke="#C4975A" strokeWidth={2} dot={{ r: 3, fill: "#C4975A", strokeWidth: 0 }} activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -204,7 +215,7 @@ export default function AnalyticsPage() {
         {/* Appointment Types Donut */}
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
           <div className="border-b border-border/60 px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Breakdown</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Breakdown</p>
             <h2 className="mt-0.5 text-sm font-semibold text-foreground">Appointment Types</h2>
           </div>
           <div className="flex items-center gap-4 p-5">
@@ -220,7 +231,7 @@ export default function AnalyticsPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2.5">
               {APPOINTMENT_TYPES.map((type, i) => (
                 <div key={i} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -235,13 +246,13 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Row 2: Top Conditions + Weekly Load */}
+      {/* Row 2: Weekly Load + Top Conditions */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
 
         {/* Weekly Load Bar Chart */}
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
           <div className="border-b border-border/60 px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">This Week</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">This Week</p>
             <h2 className="mt-0.5 text-sm font-semibold text-foreground">Daily Appointment Load</h2>
           </div>
           <div className="px-3 pb-4 pt-4">
@@ -262,23 +273,22 @@ export default function AnalyticsPage() {
         {/* Top Conditions */}
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
           <div className="border-b border-border/60 px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Prevalence</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Prevalence</p>
             <h2 className="mt-0.5 text-sm font-semibold text-foreground">Top Patient Conditions</h2>
           </div>
           <div className="space-y-3 p-5">
             {CONDITIONS_BREAKDOWN.map((item, i) => {
-              const total = CONDITIONS_BREAKDOWN.reduce((s, c) => s + c.count, 0);
-              const pct = Math.round((item.count / total) * 100);
+              const pct = Math.round((item.count / condTotal) * 100);
               return (
                 <div key={i}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
                     <span className="font-medium text-foreground">{item.condition}</span>
-                    <span className="tabular-nums text-muted-foreground">{item.count} patients ({pct}%)</span>
+                    <span className="tabular-nums text-muted-foreground">{item.count} patients &middot; {pct}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted/40">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted/40">
                     <div
                       className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: i === 0 ? "#4D9A7F" : i === 1 ? "#185C45" : i === 2 ? "#7FC4A8" : i === 3 ? "#C4975A" : "#94A3B8" }}
+                      style={{ width: `${pct}%`, background: CONDITION_COLORS[i] ?? "#94A3B8" }}
                     />
                   </div>
                 </div>

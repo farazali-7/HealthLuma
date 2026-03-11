@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Search,
   Plus,
   ChevronRight,
+  ChevronLeft,
   Calendar,
+  Clock,
   Pill,
   FileText,
   Send,
-  Clock,
-  Activity,
-  Filter,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -35,30 +36,55 @@ interface Patient {
 }
 
 const PATIENTS: Patient[] = [
-  { id: "1",  name: "Aisha Malik",    age: 34, gender: "F", avatar: "AM", dob: "Mar 12, 1991", phone: "+44 7700 123456", conditions: ["Hypertension"],         lastVisit: "Mar 10, 2026", nextAppt: "Mar 15, 2026", prescriptions: 2, status: "active" },
-  { id: "2",  name: "Bilal Hassan",   age: 52, gender: "M", avatar: "BH", dob: "Jun 3, 1973",  phone: "+44 7700 234567", conditions: ["Type 2 Diabetes"],      lastVisit: "Mar 10, 2026", nextAppt: null,          prescriptions: 3, status: "active" },
-  { id: "3",  name: "Sara Qureshi",   age: 28, gender: "F", avatar: "SQ", dob: "Jan 18, 1998", phone: "+44 7700 345678", conditions: ["Fatigue"],              lastVisit: "Mar 10, 2026", nextAppt: null,          prescriptions: 1, status: "new" },
-  { id: "4",  name: "Omar Farooq",    age: 45, gender: "M", avatar: "OF", dob: "Sep 22, 1980", phone: "+44 7700 456789", conditions: ["General Wellness"],     lastVisit: "Oct 14, 2025", nextAppt: "Mar 10, 2026", prescriptions: 0, status: "active" },
-  { id: "5",  name: "Zainab Raza",    age: 61, gender: "F", avatar: "ZR", dob: "Feb 7, 1965",  phone: "+44 7700 567890", conditions: ["Arthritis", "Anemia"],  lastVisit: "Mar 10, 2026", nextAppt: "Mar 10, 2026", prescriptions: 2, status: "active" },
-  { id: "6",  name: "Khaled Noor",    age: 39, gender: "M", avatar: "KN", dob: "Apr 30, 1986", phone: "+44 7700 678901", conditions: ["Vitamin D Deficiency"], lastVisit: "Feb 28, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active" },
-  { id: "7",  name: "Fatima Shah",    age: 27, gender: "F", avatar: "FS", dob: "Nov 14, 1998", phone: "+44 7700 789012", conditions: ["Hypothyroidism"],       lastVisit: "Jan 20, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active" },
-  { id: "8",  name: "Ahmed Rehman",   age: 66, gender: "M", avatar: "AR", dob: "May 5, 1959",  phone: "+44 7700 890123", conditions: ["Cardiac", "HTN"],        lastVisit: "Feb 15, 2026", nextAppt: "Mar 11, 2026", prescriptions: 4, status: "active" },
-  { id: "9",  name: "Nadia Jamil",    age: 43, gender: "F", avatar: "NJ", dob: "Jul 8, 1982",  phone: "+44 7700 901234", conditions: ["Migraine"],             lastVisit: "Mar 8, 2026",  nextAppt: null,          prescriptions: 1, status: "active" },
-  { id: "10", name: "Tariq Mehmood",  age: 58, gender: "M", avatar: "TM", dob: "Dec 1, 1967",  phone: "+44 7700 012345", conditions: ["Hypertension", "CKD"],  lastVisit: "Feb 10, 2026", nextAppt: null,          prescriptions: 3, status: "inactive" },
+  { id: "1",  name: "Aisha Malik",   age: 34, gender: "F", avatar: "AM", dob: "Mar 12, 1991", phone: "+44 7700 123456", conditions: ["Hypertension"],          lastVisit: "Mar 10, 2026", nextAppt: "Mar 15, 2026", prescriptions: 2, status: "active"   },
+  { id: "2",  name: "Bilal Hassan",  age: 52, gender: "M", avatar: "BH", dob: "Jun 3, 1973",  phone: "+44 7700 234567", conditions: ["Type 2 Diabetes"],       lastVisit: "Mar 10, 2026", nextAppt: null,           prescriptions: 3, status: "active"   },
+  { id: "3",  name: "Sara Qureshi",  age: 28, gender: "F", avatar: "SQ", dob: "Jan 18, 1998", phone: "+44 7700 345678", conditions: ["Fatigue"],               lastVisit: "Mar 10, 2026", nextAppt: null,           prescriptions: 1, status: "new"      },
+  { id: "4",  name: "Omar Farooq",   age: 45, gender: "M", avatar: "OF", dob: "Sep 22, 1980", phone: "+44 7700 456789", conditions: ["General Wellness"],      lastVisit: "Oct 14, 2025", nextAppt: "Mar 10, 2026", prescriptions: 0, status: "active"   },
+  { id: "5",  name: "Zainab Raza",   age: 61, gender: "F", avatar: "ZR", dob: "Feb 7, 1965",  phone: "+44 7700 567890", conditions: ["Arthritis", "Anemia"],   lastVisit: "Mar 10, 2026", nextAppt: "Mar 10, 2026", prescriptions: 2, status: "active"   },
+  { id: "6",  name: "Khaled Noor",   age: 39, gender: "M", avatar: "KN", dob: "Apr 30, 1986", phone: "+44 7700 678901", conditions: ["Vitamin D Deficiency"],  lastVisit: "Feb 28, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active"   },
+  { id: "7",  name: "Fatima Shah",   age: 27, gender: "F", avatar: "FS", dob: "Nov 14, 1998", phone: "+44 7700 789012", conditions: ["Hypothyroidism"],        lastVisit: "Jan 20, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active"   },
+  { id: "8",  name: "Ahmed Rehman",  age: 66, gender: "M", avatar: "AR", dob: "May 5, 1959",  phone: "+44 7700 890123", conditions: ["Cardiac", "HTN"],        lastVisit: "Feb 15, 2026", nextAppt: "Mar 11, 2026", prescriptions: 4, status: "active"   },
+  { id: "9",  name: "Nadia Jamil",   age: 43, gender: "F", avatar: "NJ", dob: "Jul 8, 1982",  phone: "+44 7700 901234", conditions: ["Migraine"],              lastVisit: "Mar 8, 2026",  nextAppt: null,           prescriptions: 1, status: "active"   },
+  { id: "10", name: "Tariq Mehmood", age: 58, gender: "M", avatar: "TM", dob: "Dec 1, 1967",  phone: "+44 7700 012345", conditions: ["Hypertension", "CKD"],   lastVisit: "Feb 10, 2026", nextAppt: null,           prescriptions: 3, status: "inactive" },
 ];
+
+// Per-patient appointment history for the profile panel
+const PATIENT_HISTORY: Record<string, { date: string; type: string; status: "completed" | "cancelled" }[]> = {
+  "1": [
+    { date: "Mar 10, 2026", type: "Follow-up",      status: "completed" },
+    { date: "Feb 10, 2026", type: "Consultation",   status: "completed" },
+    { date: "Oct 14, 2025", type: "Annual Checkup", status: "completed" },
+  ],
+  "2": [
+    { date: "Mar 10, 2026", type: "Consultation",   status: "completed" },
+    { date: "Jan 22, 2026", type: "Follow-up",      status: "completed" },
+  ],
+};
+
+// Per-patient prescription list
+const PATIENT_RX: Record<string, string[]> = {
+  "1": ["Amlodipine 5 mg — Once daily", "Lisinopril 10 mg — Once daily"],
+  "2": ["Metformin 1000 mg — Twice daily", "Atorvastatin 20 mg — Once nightly", "Bisoprolol 5 mg — Once daily"],
+  "5": ["Naproxen 500 mg — Twice daily PRN", "Ferrous sulfate 325 mg — Once daily"],
+  "6": ["Vitamin D3 50,000 IU — Once weekly"],
+  "7": ["Levothyroxine 50 mcg — Once daily AM"],
+  "8": ["Bisoprolol 5 mg — Once daily", "Lisinopril 10 mg — Once daily", "Atorvastatin 20 mg — Nightly", "Aspirin 81 mg — Once daily"],
+  "9": ["Sumatriptan 50 mg — As needed"],
+  "10": ["Lisinopril 10 mg — Once daily", "Amlodipine 5 mg — Once daily", "Furosemide 20 mg — Once daily"],
+};
 
 type FilterOption = "All" | "Active" | "New" | "Inactive";
 
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function PatientsPage() {
-  const [filter, setFilter]   = useState<FilterOption>("All");
-  const [search, setSearch]   = useState("");
+  const [filter,   setFilter]   = useState<FilterOption>("All");
+  const [search,   setSearch]   = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState<Record<string, string[]>>({
-    "1": ["Mar 10, 2026 — BP stable at 126/82. Continue Amlodipine 5mg. Lifestyle modifications discussed."],
-    "2": ["Mar 10, 2026 — Metformin adjusted to 1000mg twice daily. HbA1c down to 6.8%. Follow up in 3 months."],
+    "1": ["Mar 10, 2026 — BP stable at 126/82. Continue Amlodipine 5 mg. Lifestyle modifications discussed."],
+    "2": ["Mar 10, 2026 — Metformin adjusted to 1000 mg twice daily. HbA1c down to 6.8%. Follow up in 3 months."],
   });
 
   const submitNote = () => {
@@ -134,17 +160,17 @@ export default function PatientsPage() {
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+        <div className="flex-1 divide-y divide-border/40 overflow-y-auto">
           {filtered.map((patient) => (
             <button
               key={patient.id}
               onClick={() => setSelected(patient)}
               className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/30 ${
-                selected?.id === patient.id ? "bg-[#4D9A7F]/[0.06] border-r-2 border-[#4D9A7F]" : ""
+                selected?.id === patient.id ? "border-r-2 border-[#4D9A7F] bg-[#4D9A7F]/6" : ""
               }`}
             >
               <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                patient.status === "new" ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]" :
+                patient.status === "new"      ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]" :
                 patient.status === "inactive" ? "bg-muted/50 text-muted-foreground" :
                 "border border-border bg-card text-foreground"
               }`}>
@@ -166,6 +192,12 @@ export default function PatientsPage() {
               <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
             </button>
           ))}
+
+          {filtered.length === 0 && (
+            <div className="py-12 text-center">
+              <p className="text-sm text-muted-foreground">No patients match this filter.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -177,7 +209,8 @@ export default function PatientsPage() {
             onClick={() => setSelected(null)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           >
-            ← Back to patients
+            <ChevronLeft className="size-4" />
+            Back to patients
           </button>
 
           {/* Profile header */}
@@ -186,13 +219,27 @@ export default function PatientsPage() {
               {selected.avatar}
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-                {selected.name}
-              </h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {selected.age} yrs · {selected.gender === "M" ? "Male" : "Female"} · DOB: {selected.dob}
-              </p>
-              <p className="text-sm text-muted-foreground">{selected.phone}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+                    {selected.name}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {selected.age} yrs · {selected.gender === "M" ? "Male" : "Female"} · DOB: {selected.dob}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{selected.phone}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+                    <Calendar className="size-3.5" />
+                    Book
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+                    <Pill className="size-3.5" />
+                    Rx
+                  </Button>
+                </div>
+              </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {selected.conditions.map((c) => (
                   <span key={c} className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#4D9A7F]">
@@ -201,24 +248,14 @@ export default function PatientsPage() {
                 ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
-                <Calendar className="size-3.5" />
-                Book
-              </Button>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
-                <Pill className="size-3.5" />
-                Rx
-              </Button>
-            </div>
           </div>
 
           {/* Quick stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: <Calendar className="size-4 text-primary" />, label: "Last Visit", value: selected.lastVisit },
-              { icon: <Calendar className="size-4 text-[#4D9A7F]" />, label: "Next Appt", value: selected.nextAppt ?? "—" },
-              { icon: <Pill className="size-4 text-muted-foreground" />, label: "Prescriptions", value: `${selected.prescriptions} active` },
+              { icon: <Clock className="size-4 text-muted-foreground" />,   label: "Last Visit",     value: selected.lastVisit           },
+              { icon: <Calendar className="size-4 text-[#4D9A7F]" />,       label: "Next Appt",      value: selected.nextAppt ?? "—"     },
+              { icon: <Pill className="size-4 text-muted-foreground" />,     label: "Prescriptions",  value: `${selected.prescriptions} active` },
             ].map((stat, i) => (
               <div key={i} className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-2 flex size-8 items-center justify-center rounded-lg bg-muted/40">
@@ -233,12 +270,32 @@ export default function PatientsPage() {
           {/* Recent Appointments */}
           <div className="rounded-2xl border border-border bg-card shadow-sm">
             <div className="flex items-center gap-2 border-b border-border/60 px-5 py-3.5">
-              <Activity className="size-4 text-muted-foreground" />
+              <Calendar className="size-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold text-foreground">Recent Appointments</h3>
             </div>
             <div className="divide-y divide-border/40">
-              {["Mar 10, 2026 — Follow-up — Completed", "Feb 10, 2026 — Consultation — Completed", "Oct 14, 2025 — Annual Checkup — Completed"].map((item, j) => (
-                <p key={j} className="px-5 py-3 text-sm text-muted-foreground">{item}</p>
+              {(PATIENT_HISTORY[selected.id] ?? [
+                { date: "Mar 10, 2026", type: "Follow-up",      status: "completed" as const },
+                { date: "Feb 10, 2026", type: "Consultation",   status: "completed" as const },
+                { date: "Oct 14, 2025", type: "Annual Checkup", status: "completed" as const },
+              ]).map((appt, j) => (
+                <div key={j} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{appt.type}</p>
+                    <p className="text-[11px] text-muted-foreground">{appt.date}</p>
+                  </div>
+                  {appt.status === "completed" ? (
+                    <span className="flex items-center gap-1 rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
+                      <CheckCircle2 className="size-3" />
+                      Completed
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 rounded-full bg-vault-negative-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-negative">
+                      <XCircle className="size-3" />
+                      Cancelled
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -250,18 +307,22 @@ export default function PatientsPage() {
               <h3 className="text-sm font-semibold text-foreground">Active Prescriptions</h3>
             </div>
             <div className="divide-y divide-border/40">
-              {selected.prescriptions > 0
-                ? Array.from({ length: selected.prescriptions }, (_, i) =>
-                    ["Amlodipine 5mg — Once daily", "Lisinopril 10mg — Once daily", "Metformin 500mg — Twice daily", "Atorvastatin 20mg — Once nightly"][i]
-                  ).map((item, j) => (
-                    <p key={j} className="px-5 py-3 text-sm text-muted-foreground">{item}</p>
-                  ))
-                : <p className="px-5 py-3 text-sm text-muted-foreground">No active prescriptions</p>
-              }
+              {(PATIENT_RX[selected.id] ?? []).length > 0 ? (
+                (PATIENT_RX[selected.id] ?? []).map((item, j) => (
+                  <div key={j} className="flex items-center gap-3 px-5 py-3">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#4D9A7F]/10">
+                      <Pill className="size-3 text-[#4D9A7F]" />
+                    </div>
+                    <p className="text-sm text-foreground">{item}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="px-5 py-4 text-sm text-muted-foreground">No active prescriptions.</p>
+              )}
             </div>
           </div>
 
-          {/* Clinical Notes — inline composer */}
+          {/* Clinical Notes */}
           <div className="rounded-2xl border border-border bg-card shadow-sm">
             <div className="flex items-center gap-2 border-b border-border/60 px-5 py-3.5">
               <FileText className="size-4 text-muted-foreground" />
@@ -293,16 +354,17 @@ export default function PatientsPage() {
 
             {/* Notes list */}
             <div className="divide-y divide-border/40">
-              {(notes[selected.id] ?? ["Feb 10, 2026 — Lab results reviewed. All within normal range."]).map((item, j) => (
-                <div key={j} className="flex items-start gap-3 px-5 py-3.5">
-                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted/40">
-                    <Clock className="size-3 text-muted-foreground/60" />
+              {(notes[selected.id] ?? []).length > 0 ? (
+                (notes[selected.id] ?? []).map((item, j) => (
+                  <div key={j} className="flex items-start gap-3 px-5 py-3.5">
+                    <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted/40">
+                      <Clock className="size-3 text-muted-foreground/60" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{item}</p>
-                </div>
-              ))}
-              {!notes[selected.id] && (
-                <p className="px-5 py-3 text-sm text-muted-foreground/50">No notes yet.</p>
+                ))
+              ) : (
+                <p className="px-5 py-4 text-sm text-muted-foreground/60">No notes yet.</p>
               )}
             </div>
           </div>

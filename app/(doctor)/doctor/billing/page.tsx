@@ -1,16 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
   CreditCard,
   Users,
-  Calendar,
   Download,
   ChevronRight,
   CheckCircle2,
   Clock,
   AlertCircle,
+  Settings2,
+  Percent,
+  DollarSign,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,11 +40,11 @@ const MONTHLY_REVENUE = [
 ];
 
 const PRO_MEMBERS = [
-  { name: "Aisha Malik",   avatar: "AM", since: "Jan 2026",  family: 3, nextRenewal: "Jan 2027" },
-  { name: "Bilal Hassan",  avatar: "BH", since: "Mar 2025",  family: 2, nextRenewal: "Mar 2026" },
-  { name: "Fatima Shah",   avatar: "FS", since: "Feb 2026",  family: 1, nextRenewal: "Feb 2027" },
-  { name: "Ahmed Rehman",  avatar: "AR", since: "Oct 2025",  family: 4, nextRenewal: "Oct 2026" },
-  { name: "Nadia Jamil",   avatar: "NJ", since: "Nov 2025",  family: 2, nextRenewal: "Nov 2026" },
+  { name: "Aisha Malik",  avatar: "AM", since: "Jan 2026", family: 3, nextRenewal: "Jan 2027" },
+  { name: "Bilal Hassan", avatar: "BH", since: "Mar 2025", family: 2, nextRenewal: "Mar 2026" },
+  { name: "Fatima Shah",  avatar: "FS", since: "Feb 2026", family: 1, nextRenewal: "Feb 2027" },
+  { name: "Ahmed Rehman", avatar: "AR", since: "Oct 2025", family: 4, nextRenewal: "Oct 2026" },
+  { name: "Nadia Jamil",  avatar: "NJ", since: "Nov 2025", family: 2, nextRenewal: "Nov 2026" },
 ];
 
 type InvoiceStatus = "paid" | "pending" | "overdue";
@@ -56,23 +60,23 @@ interface Invoice {
 }
 
 const INVOICES: Invoice[] = [
-  { id: "INV-2026-038", patient: "Sara Qureshi",   avatar: "SQ", type: "New Patient Consultation",  date: "Mar 10, 2026", amount: 100, status: "pending" },
-  { id: "INV-2026-037", patient: "Bilal Hassan",   avatar: "BH", type: "Diabetes Follow-up",         date: "Mar 10, 2026", amount: 100, status: "paid" },
-  { id: "INV-2026-036", patient: "Aisha Malik",    avatar: "AM", type: "Hypertension Follow-up",     date: "Mar 10, 2026", amount: 100, status: "paid" },
-  { id: "INV-2026-035", patient: "Khaled Noor",    avatar: "KN", type: "Video Consultation",         date: "Mar 8, 2026",  amount: 80,  status: "paid" },
-  { id: "INV-2026-034", patient: "Nadia Jamil",    avatar: "NJ", type: "Annual Health Check",        date: "Mar 8, 2026",  amount: 150, status: "paid" },
-  { id: "INV-2026-028", patient: "Ahmed Rehman",   avatar: "AR", type: "Cardiac Follow-up",          date: "Feb 15, 2026", amount: 100, status: "paid" },
-  { id: "INV-2026-020", patient: "Aisha Malik",    avatar: "AM", type: "Lab Review Consultation",    date: "Feb 10, 2026", amount: 100, status: "paid" },
-  { id: "INV-2026-012", patient: "Tariq Mehmood",  avatar: "TM", type: "Consultation (No Show)",     date: "Mar 7, 2026",  amount: 50,  status: "overdue" },
+  { id: "INV-2026-038", patient: "Sara Qureshi",  avatar: "SQ", type: "New Patient Consultation",  date: "Mar 10, 2026", amount: 100, status: "pending" },
+  { id: "INV-2026-037", patient: "Bilal Hassan",  avatar: "BH", type: "Diabetes Follow-up",        date: "Mar 10, 2026", amount: 100, status: "paid"    },
+  { id: "INV-2026-036", patient: "Aisha Malik",   avatar: "AM", type: "Hypertension Follow-up",    date: "Mar 10, 2026", amount: 100, status: "paid"    },
+  { id: "INV-2026-035", patient: "Khaled Noor",   avatar: "KN", type: "Follow-up Consultation",    date: "Mar 8, 2026",  amount: 100, status: "paid"    },
+  { id: "INV-2026-034", patient: "Nadia Jamil",   avatar: "NJ", type: "Annual Health Check",       date: "Mar 8, 2026",  amount: 100, status: "paid"    },
+  { id: "INV-2026-028", patient: "Ahmed Rehman",  avatar: "AR", type: "Cardiac Follow-up",         date: "Feb 15, 2026", amount: 100, status: "paid"    },
+  { id: "INV-2026-020", patient: "Aisha Malik",   avatar: "AM", type: "Lab Review Consultation",   date: "Feb 10, 2026", amount: 100, status: "paid"    },
+  { id: "INV-2026-012", patient: "Tariq Mehmood", avatar: "TM", type: "Consultation (No Show)",    date: "Mar 7, 2026",  amount: 50,  status: "overdue" },
 ];
 
 const STATUS_META: Record<InvoiceStatus, { label: string; cls: string; icon: React.ReactNode }> = {
   paid:    { label: "Paid",    cls: "bg-vault-positive-light text-vault-positive", icon: <CheckCircle2 className="size-3" /> },
-  pending: { label: "Pending", cls: "bg-vault-warning-light text-vault-warning",   icon: <Clock className="size-3" /> },
+  pending: { label: "Pending", cls: "bg-vault-warning-light text-vault-warning",   icon: <Clock className="size-3" />       },
   overdue: { label: "Overdue", cls: "bg-vault-negative-light text-vault-negative", icon: <AlertCircle className="size-3" /> },
 };
 
-// ─── Custom tooltip ────────────────────────────────────────────
+// ─── Tooltip ───────────────────────────────────────────────────
 
 function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
   if (!active || !payload?.length) return null;
@@ -87,12 +91,26 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const totalRevenue  = MONTHLY_REVENUE.slice(0, 6).reduce((s, m) => s + m.revenue, 0);
-  const thisMonth     = MONTHLY_REVENUE[6].revenue;
-  const lastMonth     = MONTHLY_REVENUE[5].revenue;
-  const proMembers    = 18;
-  const pendingCount  = INVOICES.filter((i) => i.status === "pending").length;
-  const overdueCount  = INVOICES.filter((i) => i.status === "overdue").length;
+  const totalRevenue = MONTHLY_REVENUE.slice(0, 6).reduce((s, m) => s + m.revenue, 0);
+  const thisMonth    = MONTHLY_REVENUE[6].revenue;
+  const lastMonth    = MONTHLY_REVENUE[5].revenue;
+  const proMembers   = 18;
+  const pendingCount = INVOICES.filter((i) => i.status === "pending").length;
+  const overdueCount = INVOICES.filter((i) => i.status === "overdue").length;
+  const outstanding  = INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+
+  // Pricing controls (UI only — not wired to backend)
+  const [consultFee,   setConsultFee]   = useState("100");
+  const [proDiscount,  setProDiscount]  = useState("20");
+  const [proAnnual,    setProAnnual]    = useState("150");
+  const [pricingSaved, setPricingSaved] = useState(false);
+
+  function handleSavePricing() {
+    setPricingSaved(true);
+    setTimeout(() => setPricingSaved(false), 2000);
+  }
+
+  const pctChange = Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
@@ -115,32 +133,63 @@ export default function BillingPage() {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "This Month",    value: `$${thisMonth.toLocaleString()}`, sub: `${thisMonth > lastMonth ? "+" : ""}${Math.round(((thisMonth - lastMonth) / lastMonth) * 100)}% vs last month`, trend: thisMonth > lastMonth ? "up" : "down", icon: <TrendingUp className="size-3.5" />, variant: "primary" },
-          { label: "6-Month Total", value: `$${totalRevenue.toLocaleString()}`, sub: "Sep 2025 – Feb 2026", icon: <CreditCard className="size-3.5" /> },
-          { label: "Pro Members",   value: String(proMembers), sub: `$${proMembers * 150}/yr subscriptions`, icon: <Users className="size-3.5" /> },
-          { label: "Outstanding",   value: `$${INVOICES.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0)}`, sub: `${pendingCount + overdueCount} invoices`, icon: <AlertCircle className="size-3.5" />, variant: overdueCount > 0 ? "warning" : "default" as "warning" | "default" },
-        ].map((kpi, i) => (
-          <div
-            key={i}
-            className={`relative overflow-hidden rounded-2xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md ${
-              kpi.variant === "primary" ? "border-[#4D9A7F]/20" :
-              kpi.variant === "warning" ? "border-vault-warning/20" : "border-border"
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{kpi.label}</p>
-              <span className={`flex size-6 items-center justify-center rounded-lg ${
-                kpi.variant === "primary" ? "bg-[#4D9A7F]/10 text-[#4D9A7F]" :
-                kpi.variant === "warning" ? "bg-vault-warning-light text-vault-warning" : "bg-muted/60 text-muted-foreground"
-              }`}>
-                {kpi.icon}
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>{kpi.value}</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">{kpi.sub}</p>
+        {/* This Month */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#4D9A7F]/20 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-start justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">This Month</p>
+            <span className="flex size-6 items-center justify-center rounded-lg bg-[#4D9A7F]/10 text-[#4D9A7F]">
+              {pctChange >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+            </span>
           </div>
-        ))}
+          <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+            ${thisMonth.toLocaleString()}
+          </p>
+          <p className={`mt-1 text-[11px] font-medium ${pctChange >= 0 ? "text-vault-positive" : "text-vault-negative"}`}>
+            {pctChange >= 0 ? "+" : ""}{pctChange}% vs last month
+          </p>
+        </div>
+
+        {/* 6-Month Total */}
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-start justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">6-Month Total</p>
+            <span className="flex size-6 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+              <CreditCard className="size-3.5" />
+            </span>
+          </div>
+          <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+            ${totalRevenue.toLocaleString()}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Sep 2025 – Feb 2026</p>
+        </div>
+
+        {/* Pro Members */}
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-start justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Pro Members</p>
+            <span className="flex size-6 items-center justify-center rounded-lg bg-[#C4975A]/10 text-[#C4975A]">
+              <Users className="size-3.5" />
+            </span>
+          </div>
+          <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+            {proMembers}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">${proMembers * 150}/yr subscriptions</p>
+        </div>
+
+        {/* Outstanding */}
+        <div className={`relative overflow-hidden rounded-2xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md ${overdueCount > 0 ? "border-vault-warning/20" : "border-border"}`}>
+          <div className="flex items-start justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Outstanding</p>
+            <span className={`flex size-6 items-center justify-center rounded-lg ${overdueCount > 0 ? "bg-vault-warning-light text-vault-warning" : "bg-muted/60 text-muted-foreground"}`}>
+              <AlertCircle className="size-3.5" />
+            </span>
+          </div>
+          <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+            ${outstanding}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{pendingCount + overdueCount} invoices</p>
+        </div>
       </div>
 
       {/* Chart + Invoices */}
@@ -150,7 +199,7 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
           <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">7-Month Trend</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">7-Month Trend</p>
               <h2 className="mt-0.5 text-sm font-semibold text-foreground">Revenue</h2>
             </div>
             <span className="flex items-center gap-1 text-xs font-medium text-[#4D9A7F]">
@@ -177,10 +226,10 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
           <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Recent</p>
               <h2 className="mt-0.5 text-sm font-semibold text-foreground">Invoices</h2>
             </div>
-            <button className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+            <button className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground">
               View all <ChevronRight className="size-3" />
             </button>
           </div>
@@ -212,6 +261,128 @@ export default function BillingPage() {
         </div>
       </div>
 
+      {/* Pricing Controls */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-3 border-b border-border/60 px-5 py-4">
+          <span className="flex size-8 items-center justify-center rounded-xl bg-[#4D9A7F]/10 text-[#4D9A7F]">
+            <Settings2 className="size-4" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Pricing Controls</h2>
+            <p className="text-[11px] text-muted-foreground">Set appointment fees and membership rates — changes apply to future invoices</p>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+
+            {/* Consultation fee */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Consultation Fee
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                  <DollarSign className="size-3.5 text-muted-foreground" />
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="5"
+                  value={consultFee}
+                  onChange={(e) => setConsultFee(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-muted/20 py-2.5 pl-9 pr-4 text-sm font-semibold text-foreground tabular-nums focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Per in-clinic appointment</p>
+            </div>
+
+            {/* Pro annual membership */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Family Pro — Annual
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                  <DollarSign className="size-3.5 text-muted-foreground" />
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="10"
+                  value={proAnnual}
+                  onChange={(e) => setProAnnual(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-muted/20 py-2.5 pl-9 pr-4 text-sm font-semibold text-foreground tabular-nums focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Membership per household / year</p>
+            </div>
+
+            {/* Pro member discount */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Pro Member Discount
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                  <Percent className="size-3.5 text-muted-foreground" />
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={proDiscount}
+                  onChange={(e) => setProDiscount(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-muted/20 py-2.5 pl-9 pr-4 text-sm font-semibold text-foreground tabular-nums focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Discount applied per consultation</p>
+            </div>
+          </div>
+
+          {/* Preview + Save */}
+          <div className="mt-5 flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
+              <span>
+                Standard visit: <span className="font-semibold text-foreground">${consultFee || "—"}</span>
+              </span>
+              <span className="hidden sm:inline text-border">|</span>
+              <span>
+                Pro member pays:{" "}
+                <span className="font-semibold text-[#4D9A7F]">
+                  ${consultFee && proDiscount
+                    ? (parseFloat(consultFee) * (1 - parseFloat(proDiscount) / 100)).toFixed(0)
+                    : "—"}
+                </span>
+                {proDiscount ? ` (${proDiscount}% off)` : ""}
+              </span>
+              <span className="hidden sm:inline text-border">|</span>
+              <span>
+                Membership: <span className="font-semibold text-[#C4975A]">${proAnnual || "—"}/yr</span>
+              </span>
+            </div>
+            <Button
+              onClick={handleSavePricing}
+              className="shrink-0 gap-2 self-start sm:self-auto"
+              style={{ background: pricingSaved ? "#185C45" : "#4D9A7F", color: "white" }}
+            >
+              {pricingSaved ? (
+                <>
+                  <CheckCircle2 className="size-4" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" />
+                  Save Pricing
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Pro Members */}
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
@@ -223,6 +394,16 @@ export default function BillingPage() {
             {PRO_MEMBERS.length} of {proMembers} shown
           </span>
         </div>
+
+        {/* Column header */}
+        <div className="hidden grid-cols-[40px_1fr_80px_100px_80px] gap-4 border-b border-border/60 px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid">
+          <span />
+          <span>Member</span>
+          <span className="text-center">Family</span>
+          <span>Renewal</span>
+          <span>Status</span>
+        </div>
+
         <div className="divide-y divide-border/50">
           {PRO_MEMBERS.map((member) => (
             <div key={member.name} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/20">
@@ -233,18 +414,18 @@ export default function BillingPage() {
                 <p className="text-sm font-medium text-foreground">{member.name}</p>
                 <p className="text-[11px] text-muted-foreground">Member since {member.since}</p>
               </div>
-              <div className="hidden shrink-0 text-center sm:block">
+              <div className="hidden shrink-0 w-20 text-center sm:block">
                 <p className="text-xs font-semibold tabular-nums text-foreground">{member.family}</p>
-                <p className="text-[10px] text-muted-foreground">family</p>
+                <p className="text-[10px] text-muted-foreground">members</p>
               </div>
-              <div className="shrink-0 text-right">
+              <div className="shrink-0 w-24 text-right sm:text-left">
                 <p className="text-xs font-semibold text-foreground">{member.nextRenewal}</p>
                 <p className="text-[10px] text-muted-foreground">renewal</p>
               </div>
               <div className="hidden shrink-0 sm:block">
-                <span className="flex items-center gap-1 rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
-                  <Calendar className="size-2.5" />
-                  Pro
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
+                  <CheckCircle2 className="size-2.5" />
+                  Active
                 </span>
               </div>
             </div>

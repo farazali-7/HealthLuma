@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Video,
   MapPin,
   Plus,
   Search,
@@ -29,48 +28,47 @@ interface Appointment {
   date: string;
   time: string;
   type: string;
-  mode: "in-person" | "video";
   condition: string;
   status: ApptStatus;
 }
 
 const APPOINTMENTS: Appointment[] = [
-  { id: "1",  patient: "Aisha Malik",    age: 34, avatar: "AM", date: "Today",     time: "09:00 AM", type: "Follow-up",     mode: "in-person", condition: "Hypertension",    status: "completed" },
-  { id: "2",  patient: "Bilal Hassan",   age: 52, avatar: "BH", date: "Today",     time: "10:00 AM", type: "Consultation",  mode: "in-person", condition: "Type 2 Diabetes", status: "completed" },
-  { id: "3",  patient: "Sara Qureshi",   age: 28, avatar: "SQ", date: "Today",     time: "11:30 AM", type: "New Patient",   mode: "in-person", condition: "Fatigue / CBC",   status: "in-progress" },
-  { id: "4",  patient: "Omar Farooq",    age: 45, avatar: "OF", date: "Today",     time: "02:00 PM", type: "Annual Checkup",mode: "in-person", condition: "General Wellness",status: "scheduled" },
-  { id: "5",  patient: "Zainab Raza",    age: 61, avatar: "ZR", date: "Today",     time: "03:30 PM", type: "Follow-up",     mode: "in-person", condition: "Arthritis",       status: "scheduled" },
-  { id: "6",  patient: "Khaled Noor",    age: 39, avatar: "KN", date: "Tomorrow",  time: "09:30 AM", type: "Follow-up",     mode: "video",     condition: "Vitamin D",       status: "scheduled" },
-  { id: "7",  patient: "Fatima Shah",    age: 27, avatar: "FS", date: "Tomorrow",  time: "11:00 AM", type: "Consultation",  mode: "in-person", condition: "Thyroid",         status: "scheduled" },
-  { id: "8",  patient: "Ahmed Rehman",   age: 66, avatar: "AR", date: "Tomorrow",  time: "03:00 PM", type: "Follow-up",     mode: "in-person", condition: "Cardiac",         status: "scheduled" },
-  { id: "9",  patient: "Nadia Jamil",    age: 43, avatar: "NJ", date: "Mar 8",     time: "10:00 AM", type: "Annual Checkup",mode: "in-person", condition: "Wellness",        status: "completed" },
-  { id: "10", patient: "Tariq Mehmood",  age: 58, avatar: "TM", date: "Mar 7",     time: "02:30 PM", type: "Consultation",  mode: "video",     condition: "Hypertension",    status: "no-show" },
-  { id: "11", patient: "Sana Iqbal",     age: 32, avatar: "SI", date: "Mar 6",     time: "11:00 AM", type: "Follow-up",     mode: "in-person", condition: "Anemia",          status: "cancelled" },
+  { id: "1",  patient: "Aisha Malik",   age: 34, avatar: "AM", date: "Today",    time: "09:00 AM", type: "Follow-up",     condition: "Hypertension",    status: "completed"   },
+  { id: "2",  patient: "Bilal Hassan",  age: 52, avatar: "BH", date: "Today",    time: "10:00 AM", type: "Consultation",  condition: "Type 2 Diabetes", status: "completed"   },
+  { id: "3",  patient: "Sara Qureshi",  age: 28, avatar: "SQ", date: "Today",    time: "11:30 AM", type: "New Patient",   condition: "Fatigue / CBC",   status: "in-progress" },
+  { id: "4",  patient: "Omar Farooq",   age: 45, avatar: "OF", date: "Today",    time: "02:00 PM", type: "Annual Checkup",condition: "General Wellness",status: "scheduled"   },
+  { id: "5",  patient: "Zainab Raza",   age: 61, avatar: "ZR", date: "Today",    time: "03:30 PM", type: "Follow-up",     condition: "Arthritis",       status: "scheduled"   },
+  { id: "6",  patient: "Khaled Noor",   age: 39, avatar: "KN", date: "Tomorrow", time: "09:30 AM", type: "Follow-up",     condition: "Vitamin D",       status: "scheduled"   },
+  { id: "7",  patient: "Fatima Shah",   age: 27, avatar: "FS", date: "Tomorrow", time: "11:00 AM", type: "Consultation",  condition: "Thyroid",         status: "scheduled"   },
+  { id: "8",  patient: "Ahmed Rehman",  age: 66, avatar: "AR", date: "Tomorrow", time: "03:00 PM", type: "Follow-up",     condition: "Cardiac",         status: "scheduled"   },
+  { id: "9",  patient: "Nadia Jamil",   age: 43, avatar: "NJ", date: "Mar 8",    time: "10:00 AM", type: "Annual Checkup",condition: "Wellness",        status: "completed"   },
+  { id: "10", patient: "Tariq Mehmood", age: 58, avatar: "TM", date: "Mar 7",    time: "02:30 PM", type: "Consultation",  condition: "Hypertension",    status: "no-show"     },
+  { id: "11", patient: "Sana Iqbal",    age: 32, avatar: "SI", date: "Mar 6",    time: "11:00 AM", type: "Follow-up",     condition: "Anemia",          status: "cancelled"   },
 ];
 
 type FilterOption = "All" | "Today" | "Upcoming" | "Completed" | "Cancelled";
 
 const STATUS_META: Record<ApptStatus, { label: string; cls: string; icon: React.ReactNode }> = {
-  scheduled:    { label: "Scheduled",    cls: "bg-primary/10 text-primary",                        icon: <Clock className="size-3" /> },
-  "in-progress":{ label: "In Progress",  cls: "bg-[#4D9A7F]/15 text-[#4D9A7F]",                  icon: <div className="size-1.5 rounded-full bg-[#4D9A7F] animate-pulse" /> },
-  completed:    { label: "Completed",    cls: "bg-vault-positive-light text-vault-positive",        icon: <CheckCircle2 className="size-3" /> },
-  cancelled:    { label: "Cancelled",    cls: "bg-vault-negative-light text-vault-negative",        icon: <XCircle className="size-3" /> },
-  "no-show":    { label: "No Show",      cls: "bg-vault-warning-light text-vault-warning",          icon: <AlertCircle className="size-3" /> },
+  scheduled:     { label: "Scheduled",   cls: "bg-primary/10 text-primary",                      icon: <Clock className="size-3" /> },
+  "in-progress": { label: "In Progress", cls: "bg-[#4D9A7F]/15 text-[#4D9A7F]",                  icon: <div className="size-1.5 rounded-full bg-[#4D9A7F] animate-pulse" /> },
+  completed:     { label: "Completed",   cls: "bg-vault-positive-light text-vault-positive",      icon: <CheckCircle2 className="size-3" /> },
+  cancelled:     { label: "Cancelled",   cls: "bg-vault-negative-light text-vault-negative",      icon: <XCircle className="size-3" /> },
+  "no-show":     { label: "No Show",     cls: "bg-vault-warning-light text-vault-warning",        icon: <AlertCircle className="size-3" /> },
 };
 
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
-  const [filter, setFilter]       = useState<FilterOption>("All");
-  const [search, setSearch]       = useState("");
-  const [appts, setAppts]         = useState<Appointment[]>(APPOINTMENTS);
+  const [filter, setFilter] = useState<FilterOption>("All");
+  const [search, setSearch] = useState("");
+  const [appts, setAppts]   = useState<Appointment[]>(APPOINTMENTS);
 
   const startAppt    = (id: string) => setAppts((prev) => prev.map((a) =>
     a.id === id ? { ...a, status: "in-progress" } :
     a.status === "in-progress" ? { ...a, status: "scheduled" } : a
   ));
-  const completeAppt = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "completed" }  : a));
-  const cancelAppt   = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "cancelled"  }  : a));
+  const completeAppt = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "completed" } : a));
+  const cancelAppt   = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "cancelled" } : a));
 
   const filtered = appts.filter((a) => {
     const matchFilter =
@@ -88,13 +86,16 @@ export default function AppointmentsPage() {
     return matchFilter && matchSearch;
   });
 
-  const todayCount    = appts.filter((a) => a.date === "Today").length;
-  const upcomingCount = appts.filter((a) => a.status === "scheduled" || a.status === "in-progress").length;
+  const todayAppts     = appts.filter((a) => a.date === "Today");
+  const todaySeen      = todayAppts.filter((a) => a.status === "completed").length;
+  const todayTotal     = todayAppts.length;
+  const inProgress     = todayAppts.find((a) => a.status === "in-progress");
+  const upcomingCount  = appts.filter((a) => a.status === "scheduled" || a.status === "in-progress").length;
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1
@@ -104,7 +105,7 @@ export default function AppointmentsPage() {
             Appointments
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {todayCount} today · {upcomingCount} upcoming
+            {todayTotal} today &middot; {upcomingCount} upcoming
           </p>
         </div>
         <Button className="gap-2 self-start sm:self-auto" style={{ background: "#4D9A7F", color: "white" }}>
@@ -113,9 +114,41 @@ export default function AppointmentsPage() {
         </Button>
       </div>
 
-      {/* Toolbar */}
+      {/* ── Today Summary Strip ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Today's patients", value: String(todayTotal),  accent: false },
+          { label: "Seen so far",      value: String(todaySeen),   accent: false },
+          {
+            label: "Now with",
+            value: inProgress ? inProgress.patient.split(" ")[0] : "—",
+            accent: true,
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className={`rounded-2xl border p-4 ${
+              stat.accent ? "border-[#4D9A7F]/20 bg-[#4D9A7F]/5" : "border-border bg-card"
+            }`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {stat.label}
+            </p>
+            <p
+              className={`mt-1.5 text-2xl font-semibold tracking-tight ${
+                stat.accent ? "text-[#4D9A7F]" : "text-foreground"
+              }`}
+              style={{ fontFamily: "var(--font-playfair)" }}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Toolbar ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
           <input
             type="text"
@@ -140,10 +173,10 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        {/* Header */}
-        <div className="hidden grid-cols-[1fr_110px_110px_130px_110px_140px] gap-3 border-b border-border/60 px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid">
+        {/* Column header */}
+        <div className="hidden grid-cols-[1fr_110px_120px_130px_110px_140px] gap-3 border-b border-border/60 px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid">
           <span>Patient</span>
           <span>Date / Time</span>
           <span>Type</span>
@@ -164,21 +197,19 @@ export default function AppointmentsPage() {
               return (
                 <div
                   key={appt.id}
-                  className={`flex flex-col gap-2 px-5 py-3.5 transition-colors hover:bg-muted/20 sm:grid sm:grid-cols-[1fr_110px_110px_130px_110px_140px] sm:items-center sm:gap-3 ${
-                    appt.status === "in-progress" ? "bg-[#4D9A7F]/[0.03]" : ""
+                  className={`flex flex-col gap-2 px-5 py-3.5 transition-colors hover:bg-muted/20 sm:grid sm:grid-cols-[1fr_110px_120px_130px_110px_140px] sm:items-center sm:gap-3 ${
+                    appt.status === "in-progress" ? "bg-[#4D9A7F]/5" : ""
                   }`}
                 >
                   {/* Patient */}
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold ${
-                        appt.status === "in-progress"
-                          ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]"
-                          : appt.status === "completed"
-                          ? "bg-muted/50 text-muted-foreground"
-                          : "border border-border bg-card text-foreground"
-                      }`}
-                    >
+                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold ${
+                      appt.status === "in-progress"
+                        ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]"
+                        : appt.status === "completed"
+                        ? "bg-muted/50 text-muted-foreground"
+                        : "border border-border bg-card text-foreground"
+                    }`}>
                       {appt.avatar}
                     </div>
                     <div>
@@ -188,27 +219,32 @@ export default function AppointmentsPage() {
                       <p className="text-[11px] text-muted-foreground">{appt.age} yrs</p>
                     </div>
                   </div>
-                  {/* Date/Time */}
+
+                  {/* Date / Time */}
                   <div>
                     <p className="text-xs font-semibold text-foreground">{appt.date}</p>
                     <p className="text-[11px] text-muted-foreground">{appt.time}</p>
                   </div>
+
                   {/* Type */}
                   <div>
                     <p className="text-xs text-foreground">{appt.type}</p>
                     <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      {appt.mode === "video" ? <Video className="size-2.5" /> : <MapPin className="size-2.5" />}
-                      {appt.mode === "video" ? "Video" : "In-person"}
+                      <MapPin className="size-2.5" />
+                      In-person
                     </span>
                   </div>
+
                   {/* Condition */}
                   <p className="truncate text-xs text-muted-foreground">{appt.condition}</p>
+
                   {/* Status */}
                   <span className={`flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${meta.cls}`}>
                     {meta.icon}
                     {meta.label}
                   </span>
-                  {/* Contextual Actions */}
+
+                  {/* Actions */}
                   <div className="flex items-center gap-1.5">
                     {appt.status === "scheduled" && (
                       <button

@@ -143,7 +143,7 @@ export default function TwoCardSection() {
 
               {/* CTA */}
               <a
-                href="#"
+                href="/book"
                 className="hl-btn-secondary"
                 style={{
                   width: "100%",
@@ -309,7 +309,7 @@ export default function TwoCardSection() {
 
               {/* CTA */}
               <a
-                href="#"
+                href="/signup?plan=family"
                 className="hl-btn-primary"
                 style={{
                   width: "100%",

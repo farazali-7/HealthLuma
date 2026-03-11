@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, Sparkles, RefreshCw, ChevronRight } from "lucide-react";
+import { Send, Bot, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "../context";
 
@@ -27,7 +27,7 @@ function getCannedReply(input: string): { text: string; cta?: { label: string; h
 
   if (q.match(/vitamin d|vit d|vitamin-d/)) {
     return {
-      text: "Your latest Vitamin D (25-OH) result was 28 ng/mL, which is slightly below the optimal range of 30–100 ng/mL. Dr. Ahmed has already prescribed Vitamin D3 2000 IU daily. Taking it consistently with a fatty meal improves absorption. A recheck in 3 months is advisable.",
+      text: "Your latest Vitamin D (25-OH) result was 28 ng/mL, which is slightly below the optimal range of 30–100 ng/mL. Dr. Jack has already prescribed Vitamin D3 2000 IU daily. Taking it consistently with a fatty meal improves absorption. A recheck in 3 months is advisable.",
       cta: { label: "View lab result", href: "/dashboard/records" },
     };
   }
@@ -44,7 +44,7 @@ function getCannedReply(input: string): { text: string; cta?: { label: string; h
   }
   if (q.match(/appointment|book|schedule|slot|availability/)) {
     return {
-      text: "You can view live availability and book a slot in under 60 seconds. Your next scheduled appointment is with Dr. Sarah Ahmed on March 15 at 10:30 AM for a follow-up.",
+      text: "You can view live availability and book a slot in under 60 seconds. Your next scheduled appointment is with Dr. Jack on March 15 at 10:30 AM for a follow-up.",
       cta: { label: "Book appointment", href: "/dashboard/appointments" },
     };
   }
@@ -62,13 +62,13 @@ function getCannedReply(input: string): { text: string; cta?: { label: string; h
   }
   if (q.match(/chest|heart|pain|pressure|palpitation/)) {
     return {
-      text: "Chest discomfort, pressure, or pain that radiates to the arm or jaw should be evaluated urgently. If symptoms are severe or sudden, call emergency services (115/1122). For mild, recurring chest pressure, Dr. Khan (Cardiology) is your next scheduled contact on March 22.",
-      cta: { label: "View cardiology appointment", href: "/dashboard/appointments" },
+      text: "Chest discomfort, pressure, or pain that radiates to the arm or jaw should be evaluated urgently. If symptoms are severe or sudden, call emergency services immediately. For mild or recurring chest pressure, book an urgent slot with Dr. Jack — same-day appointments are available.",
+      cta: { label: "Book urgent appointment", href: "/dashboard/appointments" },
     };
   }
   if (q.match(/checkup|annual|physical|screen/)) {
     return {
-      text: "For adults under 40 with no chronic conditions, an annual check-up is recommended. Your last full physical was October 2025. Your next annual checkup with Dr. Ahmed is scheduled for April 1, 2026 — you're well within the recommended interval.",
+      text: "For adults under 40 with no chronic conditions, an annual check-up is recommended. Your last full physical was October 2025. Your next annual checkup with Dr. Jack is scheduled for April 1, 2026 — you're well within the recommended interval.",
       cta: { label: "View appointments", href: "/dashboard/appointments" },
     };
   }
@@ -91,7 +91,7 @@ function getCannedReply(input: string): { text: string; cta?: { label: string; h
   }
 
   return {
-    text: "That's a good question. For the most accurate guidance, I'd recommend booking a short consultation with Dr. Sarah Ahmed — she can review your complete history and give personalised advice. I can help you book a slot right now.",
+    text: "That's a good question. For the most accurate guidance, I'd recommend booking a short consultation with Dr. Jack — he can review your complete history and give personalised advice. I can help you book a slot right now.",
     cta: { label: "Book a consultation", href: "/dashboard/appointments" },
   };
 }
@@ -158,8 +158,12 @@ export default function AiAssistantPage() {
           >
             AI Health Assistant
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
             Ask anything about your health, results, or appointments
+            <span className="inline-flex items-center gap-1 rounded-full border border-vault-positive/30 bg-vault-positive-light px-2 py-0.5 text-[10px] font-semibold text-vault-positive">
+              <span className="size-1.5 rounded-full bg-vault-positive" />
+              Online
+            </span>
           </p>
         </div>
         <Button
@@ -171,6 +175,16 @@ export default function AiAssistantPage() {
           <RefreshCw className="size-3" />
           New chat
         </Button>
+      </div>
+
+      {/* ── Disclaimer Banner ── */}
+      <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-4 py-2.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground/70">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p className="text-[11px] text-muted-foreground">
+          Responses are informational only and do not constitute medical advice. Always consult Dr. Jack for clinical decisions.
+        </p>
       </div>
 
       {/* ── Chat Window ── */}
@@ -212,7 +226,7 @@ export default function AiAssistantPage() {
                 {msg.cta && (
                   <a
                     href={msg.cta.href}
-                    className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+                    className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
                   >
                     {msg.cta.label}
                     <ChevronRight className="size-3" />
@@ -250,7 +264,7 @@ export default function AiAssistantPage() {
                 <button
                   key={i}
                   onClick={() => send(q)}
-                  className="rounded-full border border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/8 hover:text-primary"
+                  className="rounded-full border border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                 >
                   {q}
                 </button>
@@ -279,9 +293,6 @@ export default function AiAssistantPage() {
               <Send className="size-4" />
             </button>
           </form>
-          <p className="mt-2 text-center text-[10px] text-muted-foreground/50">
-            AI responses are informational only — always consult your doctor for medical decisions.
-          </p>
         </div>
       </div>
     </div>

@@ -8,9 +8,6 @@ import {
   Upload,
   Download,
   ChevronRight,
-  Search,
-  TrendingDown,
-  TrendingUp,
   Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,38 +18,38 @@ const LAB_RESULTS = [
   {
     test: "Complete Blood Count (CBC)",
     date: "Feb 10, 2026",
-    ordered_by: "Dr. Sarah Ahmed",
+    ordered_by: "Dr. Jack",
     status: "normal" as const,
     results: [
-      { label: "WBC", value: "6.2 ×10³/µL", ref: "4.5–11.0", flag: null },
-      { label: "RBC", value: "5.1 ×10⁶/µL", ref: "4.5–5.9", flag: null },
-      { label: "Hemoglobin", value: "14.8 g/dL", ref: "13.5–17.5", flag: null },
-      { label: "Hematocrit", value: "44.2%", ref: "41–53", flag: null },
-      { label: "Platelets", value: "245 ×10³/µL", ref: "150–400", flag: null },
+      { label: "WBC",         value: "6.2 ×10³/µL", ref: "4.5–11.0", flag: null },
+      { label: "RBC",         value: "5.1 ×10⁶/µL", ref: "4.5–5.9",  flag: null },
+      { label: "Hemoglobin",  value: "14.8 g/dL",    ref: "13.5–17.5",flag: null },
+      { label: "Hematocrit",  value: "44.2%",         ref: "41–53",    flag: null },
+      { label: "Platelets",   value: "245 ×10³/µL",  ref: "150–400",  flag: null },
     ],
   },
   {
     test: "Metabolic Panel",
     date: "Feb 10, 2026",
-    ordered_by: "Dr. Sarah Ahmed",
+    ordered_by: "Dr. Jack",
     status: "attention" as const,
     results: [
-      { label: "Total Cholesterol", value: "182 mg/dL", ref: "<200", flag: null },
-      { label: "LDL", value: "108 mg/dL", ref: "<130", flag: null },
-      { label: "HDL", value: "52 mg/dL", ref: ">40", flag: null },
-      { label: "Triglycerides", value: "112 mg/dL", ref: "<150", flag: null },
-      { label: "Vitamin D (25-OH)", value: "28 ng/mL", ref: "30–100", flag: "low" as const },
-      { label: "Blood Glucose (fasting)", value: "94 mg/dL", ref: "70–99", flag: null },
+      { label: "Total Cholesterol",      value: "182 mg/dL", ref: "<200",    flag: null          },
+      { label: "LDL",                    value: "108 mg/dL", ref: "<130",    flag: null          },
+      { label: "HDL",                    value: "52 mg/dL",  ref: ">40",     flag: null          },
+      { label: "Triglycerides",          value: "112 mg/dL", ref: "<150",    flag: null          },
+      { label: "Vitamin D (25-OH)",      value: "28 ng/mL",  ref: "30–100",  flag: "low" as const },
+      { label: "Blood Glucose (fasting)",value: "94 mg/dL",  ref: "70–99",   flag: null          },
     ],
   },
   {
     test: "Thyroid Function Panel",
     date: "Nov 5, 2025",
-    ordered_by: "Dr. Sarah Ahmed",
+    ordered_by: "Dr. Jack",
     status: "normal" as const,
     results: [
-      { label: "TSH", value: "2.1 mIU/L", ref: "0.4–4.0", flag: null },
-      { label: "Free T4", value: "1.2 ng/dL", ref: "0.8–1.8", flag: null },
+      { label: "TSH",    value: "2.1 mIU/L", ref: "0.4–4.0", flag: null },
+      { label: "Free T4",value: "1.2 ng/dL", ref: "0.8–1.8", flag: null },
     ],
   },
 ];
@@ -63,7 +60,6 @@ const PRESCRIPTIONS = [
     dose: "2000 IU",
     frequency: "Once daily, morning",
     prescribed: "Feb 10, 2026",
-    prescribed_by: "Dr. Sarah Ahmed",
     refills: 5,
     status: "active" as const,
   },
@@ -72,7 +68,6 @@ const PRESCRIPTIONS = [
     dose: "1000 mg",
     frequency: "Once daily, evening",
     prescribed: "Feb 10, 2026",
-    prescribed_by: "Dr. Sarah Ahmed",
     refills: 5,
     status: "active" as const,
   },
@@ -81,7 +76,6 @@ const PRESCRIPTIONS = [
     dose: "500 mg",
     frequency: "Twice daily with meals",
     prescribed: "Jan 5, 2026",
-    prescribed_by: "Dr. Sarah Ahmed",
     refills: 2,
     status: "active" as const,
   },
@@ -90,7 +84,6 @@ const PRESCRIPTIONS = [
     dose: "500 mg",
     frequency: "Three times daily",
     prescribed: "Oct 12, 2025",
-    prescribed_by: "Dr. Sarah Ahmed",
     refills: 0,
     status: "completed" as const,
   },
@@ -98,7 +91,7 @@ const PRESCRIPTIONS = [
 
 const DOCUMENTS = [
   {
-    name: "Dr. Sarah Ahmed — Follow-up Notes",
+    name: "Follow-up Notes — Feb 2026",
     date: "Feb 10, 2026",
     type: "Consultation Note",
     size: "84 KB",
@@ -116,9 +109,9 @@ const DOCUMENTS = [
     size: "142 KB",
   },
   {
-    name: "Referral — Cardiology (Dr. Khan)",
+    name: "Prescription Summary — Jan 2026",
     date: "Jan 5, 2026",
-    type: "Referral Letter",
+    type: "Prescription Record",
     size: "56 KB",
   },
 ];
@@ -128,7 +121,7 @@ type Tab = "labs" | "prescriptions" | "documents";
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function RecordsPage() {
-  const [tab, setTab] = useState<Tab>("labs");
+  const [tab, setTab]             = useState<Tab>("labs");
   const [expandedLab, setExpandedLab] = useState<number | null>(0);
 
   return (
@@ -154,12 +147,12 @@ export default function RecordsPage() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+      <div className="flex w-fit gap-1 rounded-xl border border-border bg-muted/30 p-1">
         {(
           [
-            { id: "labs", label: "Lab Results", icon: <FlaskConical className="size-3.5" /> },
-            { id: "prescriptions", label: "Prescriptions", icon: <Pill className="size-3.5" /> },
-            { id: "documents", label: "Documents", icon: <FileText className="size-3.5" /> },
+            { id: "labs",          label: "Lab Results",   icon: <FlaskConical className="size-3.5" /> },
+            { id: "prescriptions", label: "Prescriptions", icon: <Pill className="size-3.5" />        },
+            { id: "documents",     label: "Documents",     icon: <FileText className="size-3.5" />    },
           ] as { id: Tab; label: string; icon: React.ReactNode }[]
         ).map((t) => (
           <button
@@ -185,24 +178,17 @@ export default function RecordsPage() {
               key={i}
               className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
             >
-              {/* Lab header */}
               <button
                 className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/20"
                 onClick={() => setExpandedLab(expandedLab === i ? null : i)}
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
-                      lab.status === "normal"
-                        ? "bg-vault-positive-light"
-                        : "bg-vault-warning-light"
-                    }`}
-                  >
-                    <FlaskConical
-                      className={`size-4 ${
-                        lab.status === "normal" ? "text-vault-positive" : "text-vault-warning"
-                      }`}
-                    />
+                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+                    lab.status === "normal" ? "bg-vault-positive-light" : "bg-vault-warning-light"
+                  }`}>
+                    <FlaskConical className={`size-4 ${
+                      lab.status === "normal" ? "text-vault-positive" : "text-vault-warning"
+                    }`} />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">{lab.test}</p>
@@ -212,27 +198,22 @@ export default function RecordsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                      lab.status === "normal"
-                        ? "bg-vault-positive-light text-vault-positive"
-                        : "bg-vault-warning-light text-vault-warning"
-                    }`}
-                  >
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                    lab.status === "normal"
+                      ? "bg-vault-positive-light text-vault-positive"
+                      : "bg-vault-warning-light text-vault-warning"
+                  }`}>
                     {lab.status === "normal" ? "All Normal" : "Needs Attention"}
                   </span>
-                  <ChevronRight
-                    className={`size-4 text-muted-foreground transition-transform ${
-                      expandedLab === i ? "rotate-90" : ""
-                    }`}
-                  />
+                  <ChevronRight className={`size-4 text-muted-foreground transition-transform ${
+                    expandedLab === i ? "rotate-90" : ""
+                  }`} />
                 </div>
               </button>
 
-              {/* Lab detail rows */}
               {expandedLab === i && (
                 <div className="border-t border-border/60">
-                  <div className="grid grid-cols-4 gap-2 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <div className="grid grid-cols-4 gap-2 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     <span>Test</span>
                     <span>Result</span>
                     <span>Reference</span>
@@ -254,7 +235,9 @@ export default function RecordsPage() {
                             {r.flag}
                           </span>
                         ) : (
-                          <span className="text-vault-positive">✓</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-vault-positive">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
                         )}
                       </span>
                     </div>
@@ -285,41 +268,31 @@ export default function RecordsPage() {
               className="rounded-2xl border border-border bg-card p-5 shadow-sm"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                <div
-                  className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
-                    rx.status === "active" ? "bg-primary/10" : "bg-muted/40"
-                  }`}
-                >
-                  <Pill
-                    className={`size-5 ${
-                      rx.status === "active" ? "text-primary" : "text-muted-foreground/50"
-                    }`}
-                  />
+                <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+                  rx.status === "active" ? "bg-primary/10" : "bg-muted/40"
+                }`}>
+                  <Pill className={`size-5 ${
+                    rx.status === "active" ? "text-primary" : "text-muted-foreground/50"
+                  }`} />
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold text-foreground">{rx.name}</h3>
                     <span className="text-xs font-medium text-muted-foreground">{rx.dose}</span>
-                    <span
-                      className={`ml-auto rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                        rx.status === "active"
-                          ? "bg-vault-positive-light text-vault-positive"
-                          : "bg-muted/60 text-muted-foreground"
-                      }`}
-                    >
+                    <span className={`ml-auto rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                      rx.status === "active"
+                        ? "bg-vault-positive-light text-vault-positive"
+                        : "bg-muted/60 text-muted-foreground"
+                    }`}>
                       {rx.status === "active" ? "Active" : "Completed"}
                     </span>
                   </div>
                   <p className="text-[12px] text-muted-foreground">{rx.frequency}</p>
-                  <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
+                  <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
                     <span>Prescribed {rx.prescribed}</span>
-                    <span>&middot;</span>
-                    <span>{rx.prescribed_by}</span>
+                    <span>&middot; Dr. Jack</span>
                     {rx.status === "active" && (
-                      <>
-                        <span>&middot;</span>
-                        <span>{rx.refills} refills remaining</span>
-                      </>
+                      <span>&middot; {rx.refills} refills remaining</span>
                     )}
                   </div>
                 </div>
@@ -338,7 +311,7 @@ export default function RecordsPage() {
       {tab === "documents" && (
         <div className="space-y-3">
           {/* Upload zone */}
-          <div className="flex items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/3 py-8">
+          <div className="flex items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/5 py-8">
             <div className="text-center">
               <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-primary/10">
                 <Upload className="size-5 text-primary" />
@@ -348,7 +321,6 @@ export default function RecordsPage() {
             </div>
           </div>
 
-          {/* Document list */}
           {DOCUMENTS.map((doc, i) => (
             <div
               key={i}

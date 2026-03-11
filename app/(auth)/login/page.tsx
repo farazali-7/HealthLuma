@@ -3,17 +3,98 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
+// ─── Input component ────────────────────────
+function AuthInput({
+  id,
+  label,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+  required,
+  suffix,
+  hint,
+}: {
+  id: string;
+  label: string;
+  type?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  suffix?: React.ReactNode;
+  hint?: React.ReactNode;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+        <label
+          htmlFor={id}
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: "600",
+            color: "#2A3C2F",
+            letterSpacing: "0.01em",
+          }}
+        >
+          {label}
+        </label>
+        {hint}
+      </div>
+      <div style={{ position: "relative" }}>
+        <input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{
+            width: "100%",
+            height: "46px",
+            padding: "0 44px 0 14px",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "15px",
+            color: "#162920",
+            background: "#FAFCFA",
+            border: `1.5px solid ${focused ? "#1A5C44" : "#D8DED9"}`,
+            borderRadius: "12px",
+            outline: "none",
+            boxShadow: focused ? "0 0 0 3px rgba(26,92,68,0.08)" : "none",
+            transition: "border-color 0.15s, box-shadow 0.15s",
+            boxSizing: "border-box",
+          }}
+        />
+        {suffix && (
+          <div style={{
+            position: "absolute",
+            right: "14px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            display: "flex",
+            alignItems: "center",
+          }}>
+            {suffix}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email,        setEmail]        = useState("");
+  const [password,     setPassword]     = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [remember,     setRemember]     = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -21,10 +102,7 @@ export default function LoginPage() {
     setError(null);
 
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(error.message);
@@ -32,7 +110,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Fetch role to redirect to the correct dashboard
     const { data: profile, error: profileError } = await supabase
       .from("users")
       .select("role")
@@ -52,240 +129,374 @@ export default function LoginPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Column */}
-      <div className="hidden lg:flex lg:w-[45%] relative bg-[#111820] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2E44]/40 via-transparent to-[#2D4A3E]/20" />
+    <div style={{ minHeight: "100svh", display: "flex" }}>
 
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: "60px 60px",
-          }}
-        />
+      {/* ── Left panel ─────────────────────────── */}
+      <div
+        style={{
+          width: "44%",
+          background: "#0C1810",
+          display: "none",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "48px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+        className="auth-left-panel"
+      >
+        {/* Decorative cross watermark */}
+        <div aria-hidden style={{
+          position: "absolute",
+          bottom: "-60px",
+          right: "-60px",
+          opacity: 0.03,
+          pointerEvents: "none",
+        }}>
+          <svg width="380" height="380" viewBox="0 0 380 380" fill="none">
+            <rect x="145" y="10"  width="90" height="360" rx="20" fill="white"/>
+            <rect x="10"  y="145" width="360" height="90" rx="20" fill="white"/>
+          </svg>
+        </div>
 
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div>
-            <Link
-              href="/"
-              className="font-display font-bold text-xl text-[#E8E5DE] tracking-tight"
-            >
-              HealthLuma
-            </Link>
+        {/* Subtle grid */}
+        <div aria-hidden style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+          pointerEvents: "none",
+        }}/>
+
+        {/* Top — Logo */}
+        <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px", textDecoration: "none", position: "relative", zIndex: 1 }}>
+          <div style={{ width: "26px", height: "26px", borderRadius: "7px", background: "linear-gradient(135deg, #1A5C44 0%, #2E7D5E 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(26,92,68,0.4)" }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <rect x="5" y="1" width="3" height="11" rx="1.2" fill="white"/>
+              <rect x="1" y="5" width="11" height="3" rx="1.2" fill="white"/>
+            </svg>
+          </div>
+          <span style={{ fontFamily: "var(--font-playfair)", fontSize: "19px", fontWeight: "700", color: "#E8E5DE", letterSpacing: "-0.025em" }}>
+            HealthLuma
+          </span>
+        </Link>
+
+        {/* Middle — Statement */}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
+            <div style={{ height: "1px", width: "32px", background: "#C4975A" }}/>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "10px", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", color: "#C4975A" }}>
+              Welcome back
+            </span>
           </div>
 
-          <div className="max-w-md">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="h-px w-12 bg-[#C4975A]" />
-              <span className="text-[#C4975A] text-xs font-mono uppercase tracking-[0.2em]">
-                Welcome Back
-              </span>
-            </div>
+          <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "clamp(26px, 2.8vw, 34px)", fontWeight: "700", color: "#E8E5DE", lineHeight: "1.25", letterSpacing: "-0.02em", marginBottom: "20px" }}>
+            Your health,
+            <br />
+            <span style={{ color: "#C4975A" }}>remembered.</span>
+          </h2>
 
-            <h2 className="font-display text-3xl font-semibold text-[#E8E5DE] leading-[1.3] mb-6">
-              Your health journey continues.
-              <br />
-              <span className="text-[#C4975A]">Clarity. Care. Confidence.</span>
-            </h2>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: "rgba(190,218,200,0.5)", lineHeight: "1.75", marginBottom: "40px", maxWidth: "300px" }}>
+            All your appointments, records, and care plans — exactly where you left them.
+          </p>
 
-            <p className="text-[#A0A5AD] text-[15px] leading-relaxed mb-10">
-              Access your appointments, medical records, and care plans in one
-              secure place. HealthLuma keeps your health information organized
-              and protected — so you can focus on what truly matters.
-            </p>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.02]">
-                <div className="text-2xl font-semibold text-[#E8E5DE] mb-1">
-                  256-bit
+          {/* Trust indicators */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {[
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4D9A7F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                ),
+                label: "256-bit AES encryption",
+                sub: "Military-grade data protection",
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4D9A7F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                ),
+                label: "HIPAA-aligned platform",
+                sub: "Built for healthcare privacy",
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4D9A7F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                ),
+                label: "Same-week appointments",
+                sub: "No waiting room delays",
+              },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "9px", background: "rgba(26,92,68,0.2)", border: "1px solid rgba(77,154,127,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {item.icon}
                 </div>
-                <div className="text-xs text-[#6B7280]">
-                  Advanced data encryption
+                <div>
+                  <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", fontWeight: "600", color: "#E8E5DE", marginBottom: "2px" }}>
+                    {item.label}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "rgba(190,218,200,0.38)" }}>
+                    {item.sub}
+                  </div>
                 </div>
               </div>
-              <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.02]">
-                <div className="text-2xl font-semibold text-[#4D9A7F] mb-1">
-                  100%
-                </div>
-                <div className="text-xs text-[#6B7280]">
-                  Private & confidential records
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-[13px] text-[#6B7280] italic font-display">
-            &ldquo;Because your health deserves complete clarity.&rdquo;
+            ))}
           </div>
         </div>
+
+        {/* Bottom — Quote */}
+        <p style={{ fontFamily: "var(--font-playfair)", fontSize: "13px", fontStyle: "italic", color: "rgba(190,218,200,0.3)", position: "relative", zIndex: 1 }}>
+          &ldquo;Because your health deserves complete clarity.&rdquo;
+        </p>
       </div>
 
-      {/* Right Column */}
-      <div className="flex-1 flex items-center justify-center bg-background px-6 py-12">
-        <div className="w-full max-w-[420px]">
-          <div className="lg:hidden mb-10">
-            <Link
-              href="/"
-              className="font-display font-bold text-xl text-foreground tracking-tight"
-            >
-              HealthLuma
+      {/* ── Right panel — Form ─────────────────── */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#FFFFFF",
+        padding: "40px 24px",
+      }}>
+        <div style={{ width: "100%", maxWidth: "400px" }}>
+
+          {/* Mobile logo */}
+          <div className="auth-mobile-logo">
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px", textDecoration: "none", marginBottom: "36px" }}>
+              <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: "linear-gradient(135deg, #1A5C44 0%, #2E7D5E 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                  <rect x="5" y="1" width="3" height="11" rx="1.2" fill="white"/>
+                  <rect x="1" y="5" width="11" height="3" rx="1.2" fill="white"/>
+                </svg>
+              </div>
+              <span style={{ fontFamily: "var(--font-playfair)", fontSize: "18px", fontWeight: "700", color: "#162920", letterSpacing: "-0.025em" }}>
+                HealthLuma
+              </span>
             </Link>
           </div>
 
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
-              Sign in to HealthLuma
+          {/* Heading */}
+          <div style={{ marginBottom: "32px" }}>
+            <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: "28px", fontWeight: "700", color: "#162920", letterSpacing: "-0.025em", marginBottom: "8px", lineHeight: "1.2" }}>
+              Welcome back
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: "#7C9488" }}>
               Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="text-primary font-medium hover:underline underline-offset-4"
-              >
-                Create one
+              <Link href="/signup" style={{ color: "#1A5C44", fontWeight: "600", textDecoration: "none" }}>
+                Create one free
               </Link>
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full h-11 rounded-xl text-sm font-medium gap-3 mb-6"
-            onClick={handleGoogleLogin}
+          {/* Google */}
+          <button
             type="button"
+            onClick={handleGoogleLogin}
+            style={{
+              width: "100%",
+              height: "46px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              background: "#FFFFFF",
+              border: "1.5px solid #D8DED9",
+              borderRadius: "12px",
+              fontFamily: "var(--font-dm-sans)",
+              fontWeight: "600",
+              fontSize: "14px",
+              color: "#162920",
+              cursor: "pointer",
+              transition: "border-color 0.15s, background 0.15s",
+              marginBottom: "24px",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1A5C44"; (e.currentTarget as HTMLElement).style.background = "#FAFCFA"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#D8DED9"; (e.currentTarget as HTMLElement).style.background = "#FFFFFF"; }}
           >
-            <svg className="size-4" viewBox="0 0 24 24">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </Button>
+          </button>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-3 text-muted-foreground">
-                or sign in with email
-              </span>
-            </div>
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+            <div style={{ flex: 1, height: "1px", background: "#EAF0EA" }}/>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#A8BDB5" }}>
+              or sign in with email
+            </span>
+            <div style={{ flex: 1, height: "1px", background: "#EAF0EA" }}/>
           </div>
 
+          {/* Error */}
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <div style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              background: "rgba(168,46,46,0.06)",
+              border: "1px solid rgba(168,46,46,0.18)",
+              borderRadius: "10px",
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              color: "#A82E2E",
+              display: "flex",
+              gap: "8px",
+              alignItems: "flex-start",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: "1px" }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@healthluma.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11 rounded-xl"
-              />
-            </div>
+          {/* Form */}
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <AuthInput
+              id="email"
+              label="Email Address"
+              type="email"
+              placeholder="you@healthluma.com"
+              value={email}
+              onChange={setEmail}
+              required
+            />
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            <AuthInput
+              id="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={setPassword}
+              required
+              hint={
+                <Link href="/forgot-password" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#7C9488", textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = "#1A5C44"}
+                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = "#7C9488"}
                 >
                   Forgot password?
                 </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-11 rounded-xl pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
+              }
+              suffix={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#A8BDB5", display: "flex", alignItems: "center" }}>
+                  {showPassword
+                    ? <EyeOff size={16} />
+                    : <Eye size={16} />
+                  }
                 </button>
-              </div>
-            </div>
+              }
+            />
 
-            <Button
+            {/* Remember me */}
+            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+              <div
+                onClick={() => setRemember(!remember)}
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "5px",
+                  border: `1.5px solid ${remember ? "#1A5C44" : "#D8DED9"}`,
+                  background: remember ? "#1A5C44" : "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.15s",
+                  cursor: "pointer",
+                }}
+              >
+                {remember && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
+              </div>
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#476355" }}>
+                Keep me signed in
+              </span>
+            </label>
+
+            {/* Submit */}
+            <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-xl text-sm font-medium mt-2 gap-2"
+              style={{
+                width: "100%",
+                height: "46px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                background: loading ? "#476355" : "#1A5C44",
+                color: "#FFFFFF",
+                fontFamily: "var(--font-dm-sans)",
+                fontWeight: "600",
+                fontSize: "15px",
+                border: "none",
+                borderRadius: "12px",
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "background 0.15s, transform 0.1s",
+                marginTop: "4px",
+              }}
+              onMouseEnter={(e) => { if (!loading) (e.currentTarget as HTMLElement).style.background = "#154D3A"; }}
+              onMouseLeave={(e) => { if (!loading) (e.currentTarget as HTMLElement).style.background = "#1A5C44"; }}
             >
               {loading ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Signing you in...
+                  <Loader2 size={16} className="animate-spin" />
+                  Signing you in…
                 </>
               ) : (
                 <>
                   Access Dashboard
-                  <ArrowRight className="size-4" />
+                  <ArrowRight size={15} />
                 </>
               )}
-            </Button>
+            </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-muted-foreground/60">
-            By continuing, you agree to HealthLuma&apos;s{" "}
-            <Link
-              href="/"
-              className="underline underline-offset-4 hover:text-muted-foreground"
-            >
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/"
-              className="underline underline-offset-4 hover:text-muted-foreground"
-            >
-              Privacy Policy
-            </Link>
-            .
+          {/* Trust line */}
+          <div style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A8BDB5" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "#A8BDB5" }}>
+              Your medical data is encrypted and never shared.
+            </span>
+          </div>
+
+          {/* Legal */}
+          <p style={{ marginTop: "20px", textAlign: "center", fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "rgba(124,148,136,0.6)" }}>
+            By continuing, you agree to our{" "}
+            <Link href="/" style={{ color: "#7C9488", textDecoration: "underline" }}>Terms</Link>
+            {" "}and{" "}
+            <Link href="/" style={{ color: "#7C9488", textDecoration: "underline" }}>Privacy Policy</Link>.
           </p>
         </div>
       </div>
+
+      <style>{`
+        @media (min-width: 1024px) {
+          .auth-left-panel { display: flex !important; }
+        }
+        .auth-mobile-logo { display: block; }
+        @media (min-width: 1024px) {
+          .auth-mobile-logo { display: none; }
+        }
+      `}</style>
     </div>
   );
 }

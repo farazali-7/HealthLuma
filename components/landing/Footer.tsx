@@ -18,9 +18,9 @@ const SERVICE_LINKS = [
 const SUPPORT_LINKS = [
   { label: "Help Center",    href: "/contact" },
   { label: "FAQs",           href: "/pricing#faq" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-  { label: "Medical Disclaimer", href: "#" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Medical Disclaimer", href: "/medical-disclaimer" },
 ];
 
 export default function Footer() {
@@ -276,9 +276,13 @@ export default function Footer() {
         </p>
 
         <div style={{ display: "flex", alignItems: "center", gap: "28px", flexWrap: "wrap" }}>
-          {["Privacy Policy", "Terms of Service", "Medical Disclaimer"].map((link) => (
-            <a key={link} href="#" className="hl-fdark-legal">
-              {link}
+          {[
+            { label: "Privacy Policy", href: "/privacy" },
+            { label: "Terms of Service", href: "/terms" },
+            { label: "Medical Disclaimer", href: "/medical-disclaimer" },
+          ].map(({ label, href }) => (
+            <a key={label} href={href} className="hl-fdark-legal">
+              {label}
             </a>
           ))}
         </div>

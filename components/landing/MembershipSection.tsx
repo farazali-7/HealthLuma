@@ -394,7 +394,7 @@ export default function MembershipSection() {
         <ScrollReveal delay={300}>
           <div style={{ textAlign: "center" }}>
             <a
-              href="#"
+              href="/signup?plan=family"
               className="hl-btn-primary"
               style={{ fontSize: "17px", padding: "18px 44px" }}
             >
