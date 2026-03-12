@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next build:*)",
+      "Bash(ls \"c:\\\\Users\\\\S\\\\Desktop\\\\healthLuma\\\\app\\\\\\(patient\\)\\\\dashboard\"\")",
+      "Bash(npx tsc --noEmit)",
+      "Bash(ls c:/Users/S/Desktop/healthLuma/app/\\\\\\(patient\\\\\\)/dashboard/appointments/)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
