@@ -64,15 +64,38 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    // Profile row missing or unreadable.
-    // On a protected route → block access (redirect to login).
-    // On an auth route (/login, /signup) → let the page handle it; don't
-    // loop by redirecting back to login while already on login.
     if (profileError || !profile) {
-      console.error("[middleware] role fetch failed:", profileError?.message);
-      if (isProtected) {
-        return redirectTo("/login", { error: "profile_not_found" });
+      console.error("[middleware] profile fetch error — code:", profileError?.code, "| msg:", profileError?.message);
+
+      // PGRST116 = no rows: user row missing, auto-heal with service role
+      if (profileError?.code === "PGRST116") {
+        const svc = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { cookies: { getAll: () => [], setAll: () => {} } }
+        );
+        const { error: upsertError } = await svc.from("users").upsert(
+          {
+            id:        user.id,
+            email:     user.email ?? "",
+            full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? "",
+            role:      "patient",
+          },
+          { onConflict: "id" }
+        );
+        if (upsertError) {
+          console.error("[middleware] upsert failed — code:", upsertError.code, "| msg:", upsertError.message);
+          if (isProtected) return redirectTo("/login", { error: "profile_not_found" });
+          return supabaseResponse;
+        }
+        // Row created — treat as patient and continue
+        if (isAuthRoute)   return redirectTo("/dashboard");
+        if (isDoctorRoute) return redirectTo("/dashboard");
+        return supabaseResponse;
       }
+
+      // Any other error (e.g. table missing, network) — block protected routes
+      if (isProtected) return redirectTo("/login", { error: "profile_not_found" });
       return supabaseResponse;
     }
 
