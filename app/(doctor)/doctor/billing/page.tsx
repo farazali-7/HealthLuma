@@ -98,6 +98,8 @@ export default function BillingPage() {
   const pendingCount = INVOICES.filter((i) => i.status === "pending").length;
   const overdueCount = INVOICES.filter((i) => i.status === "overdue").length;
   const outstanding  = INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+  const avgRevenue = Math.round(totalRevenue / 6);
+  const avgPct     = Math.round(((thisMonth - avgRevenue) / avgRevenue) * 100);
 
   // Pricing controls (UI only — not wired to backend)
   const [consultFee,   setConsultFee]   = useState("100");
@@ -202,9 +204,9 @@ export default function BillingPage() {
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">7-Month Trend</p>
               <h2 className="mt-0.5 text-sm font-semibold text-foreground">Revenue</h2>
             </div>
-            <span className="flex items-center gap-1 text-xs font-medium text-[#4D9A7F]">
-              <TrendingUp className="size-3.5" />
-              +11% vs 6-month avg
+            <span className={`flex items-center gap-1 text-xs font-medium ${avgPct >= 0 ? "text-[#4D9A7F]" : "text-vault-negative"}`}>
+              {avgPct >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+              {avgPct >= 0 ? "+" : ""}{avgPct}% vs 6-month avg
             </span>
           </div>
           <div className="px-3 pb-4 pt-4">

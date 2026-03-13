@@ -287,23 +287,14 @@ export default function BillingPage() {
                 Full online booking, digital records, and AI assistant access. Upgrade to Family Care for priority slots and savings across all visits.
               </p>
 
-              <div className="grid grid-cols-3 gap-3 rounded-xl bg-muted/30 p-4">
-                <div className="text-center">
+              <div className="grid grid-cols-2 divide-x divide-border/60 rounded-xl bg-muted/30 overflow-hidden">
+                <div className="p-4 text-center">
                   <p className="text-lg font-bold tabular-nums text-foreground">5</p>
                   <p className="text-[10px] text-muted-foreground">visits this year</p>
                 </div>
-                <div className="text-center border-x border-border/60">
+                <div className="p-4 text-center">
                   <p className="text-lg font-bold tabular-nums text-foreground">${totalPaid}</p>
                   <p className="text-[10px] text-muted-foreground">total spent</p>
-                </div>
-                <div className="text-center">
-                  <p
-                    className="text-lg font-bold tabular-nums"
-                    style={{ color: "#C4975A" }}
-                  >
-                    ${Math.round(totalPaid * 0.2)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">you&apos;d save with Pro</p>
                 </div>
               </div>
             </div>

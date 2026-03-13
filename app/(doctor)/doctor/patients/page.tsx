@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Search,
   Plus,
-  ChevronRight,
   ChevronLeft,
   Calendar,
   Clock,
@@ -189,7 +188,6 @@ export default function PatientsPage() {
                 </p>
                 <p className="text-[10px] text-muted-foreground/60">Last: {patient.lastVisit}</p>
               </div>
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
             </button>
           ))}
 
@@ -232,11 +230,11 @@ export default function PatientsPage() {
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
                     <Calendar className="size-3.5" />
-                    Book
+                    Book Appt
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
                     <Pill className="size-3.5" />
-                    Rx
+                    New Rx
                   </Button>
                 </div>
               </div>
@@ -251,20 +249,24 @@ export default function PatientsPage() {
           </div>
 
           {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: <Clock className="size-4 text-muted-foreground" />,   label: "Last Visit",     value: selected.lastVisit           },
-              { icon: <Calendar className="size-4 text-[#4D9A7F]" />,       label: "Next Appt",      value: selected.nextAppt ?? "—"     },
-              { icon: <Pill className="size-4 text-muted-foreground" />,     label: "Prescriptions",  value: `${selected.prescriptions} active` },
-            ].map((stat, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-4">
-                <div className="mb-2 flex size-8 items-center justify-center rounded-lg bg-muted/40">
-                  {stat.icon}
-                </div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="mt-0.5 text-sm font-semibold text-foreground">{stat.value}</p>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border/60 bg-muted/20 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Last visit</span>
+              <span className="text-xs font-semibold text-foreground">{selected.lastVisit}</span>
+            </div>
+            <span className="hidden text-border sm:block">·</span>
+            <div className="flex items-center gap-2">
+              <Calendar className="size-3.5 shrink-0 text-[#4D9A7F]" />
+              <span className="text-xs text-muted-foreground">Next appt</span>
+              <span className="text-xs font-semibold text-foreground">{selected.nextAppt ?? "Not scheduled"}</span>
+            </div>
+            <span className="hidden text-border sm:block">·</span>
+            <div className="flex items-center gap-2">
+              <Pill className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">{selected.prescriptions}</span>
+              <span className="text-xs text-muted-foreground">active prescription{selected.prescriptions !== 1 ? "s" : ""}</span>
+            </div>
           </div>
 
           {/* Recent Appointments */}
@@ -274,29 +276,29 @@ export default function PatientsPage() {
               <h3 className="text-sm font-semibold text-foreground">Recent Appointments</h3>
             </div>
             <div className="divide-y divide-border/40">
-              {(PATIENT_HISTORY[selected.id] ?? [
-                { date: "Mar 10, 2026", type: "Follow-up",      status: "completed" as const },
-                { date: "Feb 10, 2026", type: "Consultation",   status: "completed" as const },
-                { date: "Oct 14, 2025", type: "Annual Checkup", status: "completed" as const },
-              ]).map((appt, j) => (
-                <div key={j} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{appt.type}</p>
-                    <p className="text-[11px] text-muted-foreground">{appt.date}</p>
+              {(PATIENT_HISTORY[selected.id] ?? []).length > 0 ? (
+                (PATIENT_HISTORY[selected.id] ?? []).map((appt, j) => (
+                  <div key={j} className="flex items-center justify-between px-5 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{appt.type}</p>
+                      <p className="text-[11px] text-muted-foreground">{appt.date}</p>
+                    </div>
+                    {appt.status === "completed" ? (
+                      <span className="flex items-center gap-1 rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
+                        <CheckCircle2 className="size-3" />
+                        Completed
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-vault-negative-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-negative">
+                        <XCircle className="size-3" />
+                        Cancelled
+                      </span>
+                    )}
                   </div>
-                  {appt.status === "completed" ? (
-                    <span className="flex items-center gap-1 rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
-                      <CheckCircle2 className="size-3" />
-                      Completed
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 rounded-full bg-vault-negative-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-negative">
-                      <XCircle className="size-3" />
-                      Cancelled
-                    </span>
-                  )}
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="px-5 py-4 text-sm text-muted-foreground/60">No visit history recorded.</p>
+              )}
             </div>
           </div>
 

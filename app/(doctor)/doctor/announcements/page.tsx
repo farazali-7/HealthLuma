@@ -78,10 +78,10 @@ const ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
-const AUDIENCE_META: Record<AudienceType, { label: string; icon: React.ReactNode; cls: string; dot: string }> = {
-  all:      { label: "All Patients", icon: <Globe className="size-3" />,  cls: "bg-primary/10 text-primary",         dot: "bg-primary"    },
-  pro:      { label: "Pro Members",  icon: <Crown className="size-3" />,  cls: "bg-[#C4975A]/15 text-[#C4975A]",    dot: "bg-[#C4975A]"  },
-  specific: { label: "Specific",     icon: <Users className="size-3" />,  cls: "bg-muted/60 text-muted-foreground",  dot: "bg-muted-foreground" },
+const AUDIENCE_META: Record<AudienceType, { label: string; icon: React.ReactNode; bigIcon: React.ReactNode; cls: string; dot: string }> = {
+  all:      { label: "All Patients", icon: <Globe className="size-3" />,  bigIcon: <Globe className="size-4" />,  cls: "bg-primary/10 text-primary",         dot: "bg-primary"    },
+  pro:      { label: "Pro Members",  icon: <Crown className="size-3" />,  bigIcon: <Crown className="size-4" />,  cls: "bg-[#C4975A]/15 text-[#C4975A]",    dot: "bg-[#C4975A]"  },
+  specific: { label: "Specific",     icon: <Users className="size-3" />,  bigIcon: <Users className="size-4" />,  cls: "bg-muted/60 text-muted-foreground",  dot: "bg-muted-foreground" },
 };
 
 const STATUS_META: Record<AnnouncementStatus, { label: string; icon: React.ReactNode; cls: string }> = {
@@ -149,16 +149,20 @@ function ComposeModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
+            <Button variant="outline" className="gap-1.5" onClick={onClose}>
               Save Draft
             </Button>
+            <Button variant="outline" className="gap-1.5" onClick={onClose}>
+              <Clock className="size-3.5" />
+              Schedule
+            </Button>
             <Button
-              className="flex-1 gap-2"
+              className="ml-auto gap-2"
               style={{ background: "#4D9A7F", color: "white" }}
               onClick={onClose}
             >
               <Send className="size-3.5" />
-              Publish
+              Publish Now
             </Button>
           </div>
         </div>
@@ -272,7 +276,7 @@ export default function AnnouncementsPage() {
 
                       {/* Icon */}
                       <div className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${audience.cls}`}>
-                        <Megaphone className="size-4" />
+                        {audience.bigIcon}
                       </div>
 
                       {/* Content */}

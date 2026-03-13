@@ -182,6 +182,19 @@ export default function PrescriptionsPage() {
           ))}
         </div>
 
+        {/* Refill-due alert */}
+        {refillDueCount > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-vault-warning/30 bg-vault-warning-light px-4 py-3">
+            <AlertCircle className="size-4 shrink-0 text-vault-warning" />
+            <p className="text-sm">
+              <span className="font-semibold text-vault-warning">
+                {refillDueCount} prescription{refillDueCount > 1 ? "s" : ""} need{refillDueCount === 1 ? "s" : ""} renewal.
+              </span>{" "}
+              <span className="text-muted-foreground">Review and renew to avoid treatment gaps.</span>
+            </p>
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1 max-w-sm">

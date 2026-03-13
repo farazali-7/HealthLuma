@@ -6,7 +6,6 @@ import {
   TrendingDown,
   Users,
   Calendar,
-  Star,
   Clock,
   Activity,
   Repeat,
@@ -68,7 +67,6 @@ const KPI_STATS = [
   { label: "Avg consult time",  value: "18 min", change: "−2 min", up: true  as true,  icon: <Clock className="size-3.5" />    },
   { label: "No-show rate",      value: "3.2%",   change: "−0.5%",  up: true  as true,  icon: <Calendar className="size-3.5" /> },
   { label: "Patient retention", value: "84%",    change: "+3%",    up: true  as true,  icon: <Repeat className="size-3.5" />   },
-  { label: "Pro members",       value: "18",     change: "+4",     up: true  as true,  icon: <Star className="size-3.5" />     },
   { label: "Avg rating",        value: "4.9",    change: "stable", up: null  as null,  icon: <Activity className="size-3.5" /> },
 ];
 
@@ -150,7 +148,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {KPI_STATS.map((kpi, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-start justify-between">

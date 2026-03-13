@@ -1,96 +1,176 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import {
   Calendar,
   Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  MapPin,
   Plus,
   Search,
   Play,
-  RotateCcw,
   FileText,
+  Loader2,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getDoctorAppointmentsAction,
+  updateAppointmentStatusAction,
+  type DoctorAppointment,
+  type ApptStatus,
+} from "./actions";
 
-// ─── Data ──────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────
 
-type ApptStatus = "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show";
-
-interface Appointment {
-  id: string;
-  patient: string;
-  age: number;
-  avatar: string;
-  date: string;
-  time: string;
-  type: string;
-  condition: string;
-  status: ApptStatus;
-}
-
-const APPOINTMENTS: Appointment[] = [
-  { id: "1",  patient: "Aisha Malik",   age: 34, avatar: "AM", date: "Today",    time: "09:00 AM", type: "Follow-up",     condition: "Hypertension",    status: "completed"   },
-  { id: "2",  patient: "Bilal Hassan",  age: 52, avatar: "BH", date: "Today",    time: "10:00 AM", type: "Consultation",  condition: "Type 2 Diabetes", status: "completed"   },
-  { id: "3",  patient: "Sara Qureshi",  age: 28, avatar: "SQ", date: "Today",    time: "11:30 AM", type: "New Patient",   condition: "Fatigue / CBC",   status: "in-progress" },
-  { id: "4",  patient: "Omar Farooq",   age: 45, avatar: "OF", date: "Today",    time: "02:00 PM", type: "Annual Checkup",condition: "General Wellness",status: "scheduled"   },
-  { id: "5",  patient: "Zainab Raza",   age: 61, avatar: "ZR", date: "Today",    time: "03:30 PM", type: "Follow-up",     condition: "Arthritis",       status: "scheduled"   },
-  { id: "6",  patient: "Khaled Noor",   age: 39, avatar: "KN", date: "Tomorrow", time: "09:30 AM", type: "Follow-up",     condition: "Vitamin D",       status: "scheduled"   },
-  { id: "7",  patient: "Fatima Shah",   age: 27, avatar: "FS", date: "Tomorrow", time: "11:00 AM", type: "Consultation",  condition: "Thyroid",         status: "scheduled"   },
-  { id: "8",  patient: "Ahmed Rehman",  age: 66, avatar: "AR", date: "Tomorrow", time: "03:00 PM", type: "Follow-up",     condition: "Cardiac",         status: "scheduled"   },
-  { id: "9",  patient: "Nadia Jamil",   age: 43, avatar: "NJ", date: "Mar 8",    time: "10:00 AM", type: "Annual Checkup",condition: "Wellness",        status: "completed"   },
-  { id: "10", patient: "Tariq Mehmood", age: 58, avatar: "TM", date: "Mar 7",    time: "02:30 PM", type: "Consultation",  condition: "Hypertension",    status: "no-show"     },
-  { id: "11", patient: "Sana Iqbal",    age: 32, avatar: "SI", date: "Mar 6",    time: "11:00 AM", type: "Follow-up",     condition: "Anemia",          status: "cancelled"   },
-];
-
+// "in-progress" is ephemeral UI state only (not persisted to DB).
+// DB statuses: upcoming | completed | cancelled | no-show
+type UIStatus = ApptStatus | "in-progress";
 type FilterOption = "All" | "Today" | "Upcoming" | "Completed" | "Cancelled";
 
-const STATUS_META: Record<ApptStatus, { label: string; cls: string; icon: React.ReactNode }> = {
-  scheduled:     { label: "Scheduled",   cls: "bg-primary/10 text-primary",                      icon: <Clock className="size-3" /> },
-  "in-progress": { label: "In Progress", cls: "bg-[#4D9A7F]/15 text-[#4D9A7F]",                  icon: <div className="size-1.5 rounded-full bg-[#4D9A7F] animate-pulse" /> },
-  completed:     { label: "Completed",   cls: "bg-vault-positive-light text-vault-positive",      icon: <CheckCircle2 className="size-3" /> },
-  cancelled:     { label: "Cancelled",   cls: "bg-vault-negative-light text-vault-negative",      icon: <XCircle className="size-3" /> },
-  "no-show":     { label: "No Show",     cls: "bg-vault-warning-light text-vault-warning",        icon: <AlertCircle className="size-3" /> },
+// ─── Helpers ────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<string, string> = {
+  "consultation":        "Consultation",
+  "follow-up":           "Follow-up",
+  "checkup":             "Annual Checkup",
+  "prescription-review": "Prescription Review",
 };
 
-// ─── Page ──────────────────────────────────────────────────────
+function fmtTime(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+function dateLabel(dateStr: string) {
+  const today    = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split("T")[0];
+  if (dateStr === today)    return "Today";
+  if (dateStr === tomorrow) return "Tomorrow";
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", timeZone: "UTC",
+  });
+}
+
+function initials(name: string) {
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+}
+
+/** Sort: today → future → past. Within each group: by start_time asc. */
+function sortAppointments(appts: DoctorAppointment[]) {
+  const today = new Date().toISOString().split("T")[0];
+  return [...appts].sort((a, b) => {
+    const aToday  = a.appointment_date === today;
+    const bToday  = b.appointment_date === today;
+    const aFuture = a.appointment_date >  today;
+    const bFuture = b.appointment_date >  today;
+
+    if (aToday  && !bToday)  return -1;
+    if (!aToday &&  bToday)  return  1;
+    if (aToday  &&  bToday)  return a.start_time.localeCompare(b.start_time);
+    if (aFuture && !bFuture) return -1;
+    if (!aFuture && bFuture) return  1;
+    if (aFuture &&  bFuture) {
+      const dc = a.appointment_date.localeCompare(b.appointment_date);
+      return dc !== 0 ? dc : a.start_time.localeCompare(b.start_time);
+    }
+    // Both past: most recent first
+    const dc = b.appointment_date.localeCompare(a.appointment_date);
+    return dc !== 0 ? dc : a.start_time.localeCompare(b.start_time);
+  });
+}
+
+const STATUS_META: Record<UIStatus, { label: string; cls: string; icon: React.ReactNode }> = {
+  upcoming:      { label: "Scheduled",   cls: "bg-primary/10 text-primary",                   icon: <Clock className="size-3" /> },
+  "in-progress": { label: "In Progress", cls: "bg-[#4D9A7F]/15 text-[#4D9A7F]",               icon: <div className="size-1.5 rounded-full bg-[#4D9A7F] animate-pulse" /> },
+  completed:     { label: "Completed",   cls: "bg-vault-positive-light text-vault-positive",   icon: <CheckCircle2 className="size-3" /> },
+  cancelled:     { label: "Cancelled",   cls: "bg-vault-negative-light text-vault-negative",   icon: <XCircle className="size-3" /> },
+  "no-show":     { label: "No Show",     cls: "bg-vault-warning-light text-vault-warning",     icon: <AlertCircle className="size-3" /> },
+};
+
+// ─── Page ────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
-  const [filter, setFilter] = useState<FilterOption>("All");
-  const [search, setSearch] = useState("");
-  const [appts, setAppts]   = useState<Appointment[]>(APPOINTMENTS);
+  const [appointments, setAppointments] = useState<DoctorAppointment[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [fetchError,   setFetchError]   = useState<string | null>(null);
+  const [inProgress,   setInProgress]   = useState<Set<string>>(new Set());
+  const [filter,       setFilter]       = useState<FilterOption>("All");
+  const [search,       setSearch]       = useState("");
+  const [isPending,    startTransition] = useTransition();
 
-  const startAppt    = (id: string) => setAppts((prev) => prev.map((a) =>
-    a.id === id ? { ...a, status: "in-progress" } :
-    a.status === "in-progress" ? { ...a, status: "scheduled" } : a
-  ));
-  const completeAppt = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "completed" } : a));
-  const cancelAppt   = (id: string) => setAppts((prev) => prev.map((a) => a.id === id ? { ...a, status: "cancelled" } : a));
+  // ── Load appointments ──
+  const load = useCallback(() => {
+    setLoading(true);
+    setFetchError(null);
+    getDoctorAppointmentsAction()
+      .then((data) => setAppointments(sortAppointments(data)))
+      .catch(() => setFetchError("Failed to load appointments. Please refresh."))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const filtered = appts.filter((a) => {
+  useEffect(() => { load(); }, [load]);
+
+  // ── Derived stats ──
+  const todayStr    = new Date().toISOString().split("T")[0];
+  const todayAppts  = appointments.filter((a) => a.appointment_date === todayStr);
+  const todaySeen   = todayAppts.filter((a) => a.status === "completed").length;
+  const totalToday  = todayAppts.length;
+  const activeId    = [...inProgress][inProgress.size - 1]; // last started
+  const activeAppt  = activeId ? appointments.find((a) => a.id === activeId) : null;
+  const upcomingCount = appointments.filter(
+    (a) => a.status === "upcoming" && a.appointment_date >= todayStr
+  ).length;
+
+  // ── Filter ──
+  const filtered = appointments.filter((a) => {
+    const uiStatus: UIStatus = inProgress.has(a.id) ? "in-progress" : a.status;
     const matchFilter =
       filter === "All"       ? true :
-      filter === "Today"     ? a.date === "Today" :
-      filter === "Upcoming"  ? (a.status === "scheduled" || a.status === "in-progress") :
-      filter === "Completed" ? a.status === "completed" :
-      (a.status === "cancelled" || a.status === "no-show");
+      filter === "Today"     ? a.appointment_date === todayStr :
+      filter === "Upcoming"  ? (uiStatus === "upcoming" || uiStatus === "in-progress") :
+      filter === "Completed" ? uiStatus === "completed" :
+      (uiStatus === "cancelled" || uiStatus === "no-show");
 
     const matchSearch = search
-      ? a.patient.toLowerCase().includes(search.toLowerCase()) ||
-        a.condition.toLowerCase().includes(search.toLowerCase())
+      ? (a.patient?.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (a.notes ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (TYPE_LABELS[a.type] ?? a.type).toLowerCase().includes(search.toLowerCase())
       : true;
 
     return matchFilter && matchSearch;
   });
 
-  const todayAppts     = appts.filter((a) => a.date === "Today");
-  const todaySeen      = todayAppts.filter((a) => a.status === "completed").length;
-  const todayTotal     = todayAppts.length;
-  const inProgress     = todayAppts.find((a) => a.status === "in-progress");
-  const upcomingCount  = appts.filter((a) => a.status === "scheduled" || a.status === "in-progress").length;
+  // ── Actions ──
+  function startConsult(id: string) {
+    // Only one in-progress at a time: end any current one first (stay 'upcoming' in DB)
+    setInProgress((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }
+
+  function markStatus(id: string, status: "completed" | "cancelled" | "no-show") {
+    // Optimistic update
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status } : a))
+    );
+    setInProgress((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+    startTransition(async () => {
+      const { error } = await updateAppointmentStatusAction(id, status);
+      if (error) {
+        // Revert on failure — reload from server
+        load();
+      }
+    });
+  }
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
@@ -105,28 +185,39 @@ export default function AppointmentsPage() {
             Appointments
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {todayTotal} today &middot; {upcomingCount} upcoming
+            {loading
+              ? "Loading…"
+              : `${totalToday} today · ${upcomingCount} upcoming`}
           </p>
         </div>
-        <Button className="gap-2 self-start sm:self-auto" style={{ background: "#4D9A7F", color: "white" }}>
-          <Plus className="size-4" />
-          Add Appointment
+        <Button
+          className="gap-2 self-start sm:self-auto"
+          style={{ background: "#4D9A7F", color: "white" }}
+          onClick={load}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Plus className="size-4" />
+          )}
+          {loading ? "Loading…" : "Refresh"}
         </Button>
       </div>
 
       {/* ── Today Summary Strip ── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Today's patients", value: String(todayTotal),  accent: false },
+          { label: "Today's patients", value: String(totalToday),  accent: false },
           { label: "Seen so far",      value: String(todaySeen),   accent: false },
           {
             label: "Now with",
-            value: inProgress ? inProgress.patient.split(" ")[0] : "—",
-            accent: true,
+            value: activeAppt ? activeAppt.patient?.full_name?.split(" ")[0] ?? "—" : "—",
+            accent: !!activeAppt,
           },
-        ].map((stat, i) => (
+        ].map((stat) => (
           <div
-            key={i}
+            key={stat.label}
             className={`rounded-2xl border p-4 ${
               stat.accent ? "border-[#4D9A7F]/20 bg-[#4D9A7F]/5" : "border-border bg-card"
             }`}
@@ -140,7 +231,7 @@ export default function AppointmentsPage() {
               }`}
               style={{ fontFamily: "var(--font-playfair)" }}
             >
-              {stat.value}
+              {loading ? <span className="text-muted-foreground/30">—</span> : stat.value}
             </p>
           </div>
         ))}
@@ -152,7 +243,7 @@ export default function AppointmentsPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
           <input
             type="text"
-            placeholder="Search patient or condition…"
+            placeholder="Search patient or appointment type…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-border bg-muted/20 py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
@@ -173,70 +264,91 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
+      {/* ── Error ── */}
+      {fetchError && !loading && (
+        <div className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          {fetchError}
+          <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={load}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {/* Column header */}
-        <div className="hidden grid-cols-[1fr_110px_120px_130px_110px_140px] gap-3 border-b border-border/60 px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid">
+        <div className="hidden grid-cols-[1fr_110px_130px_100px_120px_150px] gap-3 border-b border-border/60 px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid">
           <span>Patient</span>
           <span>Date / Time</span>
           <span>Type</span>
-          <span>Condition</span>
+          <span>Priority</span>
           <span>Status</span>
           <span>Actions</span>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <TableSkeleton />
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <Calendar className="mx-auto mb-3 size-8 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No appointments match this filter.</p>
+            <p className="text-sm text-muted-foreground">
+              {search ? `No appointments matching "${search}".` : "No appointments match this filter."}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-border/50">
             {filtered.map((appt) => {
-              const meta = STATUS_META[appt.status];
+              const uiStatus: UIStatus = inProgress.has(appt.id) ? "in-progress" : appt.status;
+              const meta    = STATUS_META[uiStatus];
+              const patName = appt.patient?.full_name ?? "Unknown Patient";
+              const typeLabel = TYPE_LABELS[appt.type] ?? appt.type;
+
               return (
                 <div
                   key={appt.id}
-                  className={`flex flex-col gap-2 px-5 py-3.5 transition-colors hover:bg-muted/20 sm:grid sm:grid-cols-[1fr_110px_120px_130px_110px_140px] sm:items-center sm:gap-3 ${
-                    appt.status === "in-progress" ? "bg-[#4D9A7F]/5" : ""
+                  className={`flex flex-col gap-2 px-5 py-3.5 transition-colors hover:bg-muted/20 sm:grid sm:grid-cols-[1fr_110px_130px_100px_120px_150px] sm:items-center sm:gap-3 ${
+                    uiStatus === "in-progress" ? "bg-[#4D9A7F]/5" : ""
                   }`}
                 >
                   {/* Patient */}
                   <div className="flex items-center gap-3">
-                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold ${
-                      appt.status === "in-progress"
-                        ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]"
-                        : appt.status === "completed"
-                        ? "bg-muted/50 text-muted-foreground"
-                        : "border border-border bg-card text-foreground"
-                    }`}>
-                      {appt.avatar}
+                    <div
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold ${
+                        uiStatus === "in-progress"
+                          ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]"
+                          : uiStatus === "completed"
+                          ? "bg-muted/50 text-muted-foreground"
+                          : "border border-border bg-card text-foreground"
+                      }`}
+                    >
+                      {initials(patName)}
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${appt.status === "completed" ? "text-muted-foreground" : "text-foreground"}`}>
-                        {appt.patient}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">{appt.age} yrs</p>
-                    </div>
+                    <p className={`text-sm font-medium ${uiStatus === "completed" ? "text-muted-foreground" : "text-foreground"}`}>
+                      {patName}
+                    </p>
                   </div>
 
                   {/* Date / Time */}
                   <div>
-                    <p className="text-xs font-semibold text-foreground">{appt.date}</p>
-                    <p className="text-[11px] text-muted-foreground">{appt.time}</p>
+                    <p className="text-xs font-semibold text-foreground">{dateLabel(appt.appointment_date)}</p>
+                    <p className="text-[11px] text-muted-foreground">{fmtTime(appt.start_time)}</p>
                   </div>
 
                   {/* Type */}
-                  <div>
-                    <p className="text-xs text-foreground">{appt.type}</p>
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <MapPin className="size-2.5" />
-                      In-person
-                    </span>
-                  </div>
+                  <p className="text-xs text-foreground">{typeLabel}</p>
 
-                  {/* Condition */}
-                  <p className="truncate text-xs text-muted-foreground">{appt.condition}</p>
+                  {/* Priority */}
+                  <div>
+                    {appt.is_priority ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-vault-warning-light px-2 py-0.5 text-[10px] font-semibold text-vault-warning">
+                        <Star className="size-2.5" />
+                        Priority
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/40">—</span>
+                    )}
+                  </div>
 
                   {/* Status */}
                   <span className={`flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${meta.cls}`}>
@@ -246,47 +358,59 @@ export default function AppointmentsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5">
-                    {appt.status === "scheduled" && (
-                      <button
-                        onClick={() => startAppt(appt.id)}
-                        className="flex items-center gap-1 rounded-lg bg-[#4D9A7F]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[#4D9A7F] transition-colors hover:bg-[#4D9A7F]/20"
-                      >
-                        <Play className="size-2.5" />
-                        Start
-                      </button>
+                    {uiStatus === "upcoming" && (
+                      <>
+                        <ActionBtn
+                          cls="bg-[#4D9A7F]/10 text-[#4D9A7F] hover:bg-[#4D9A7F]/20"
+                          icon={<Play className="size-2.5" />}
+                          label="Start"
+                          onClick={() => startConsult(appt.id)}
+                          disabled={isPending}
+                        />
+                        <ActionBtn
+                          cls="bg-vault-warning-light text-vault-warning hover:bg-vault-warning/20"
+                          icon={<AlertCircle className="size-2.5" />}
+                          label="No-show"
+                          onClick={() => markStatus(appt.id, "no-show")}
+                          disabled={isPending}
+                        />
+                        <IconBtn
+                          title="Cancel"
+                          onClick={() => markStatus(appt.id, "cancelled")}
+                          disabled={isPending}
+                          cls="hover:bg-vault-negative-light hover:text-vault-negative"
+                        >
+                          <XCircle className="size-3.5" />
+                        </IconBtn>
+                      </>
                     )}
-                    {appt.status === "in-progress" && (
-                      <button
-                        onClick={() => completeAppt(appt.id)}
-                        className="flex items-center gap-1 rounded-lg bg-vault-positive-light px-2.5 py-1.5 text-[11px] font-semibold text-vault-positive transition-colors hover:bg-vault-positive/20"
-                      >
-                        <CheckCircle2 className="size-2.5" />
-                        Done
-                      </button>
+                    {uiStatus === "in-progress" && (
+                      <>
+                        <ActionBtn
+                          cls="bg-vault-positive-light text-vault-positive hover:bg-vault-positive/20"
+                          icon={<CheckCircle2 className="size-2.5" />}
+                          label="Done"
+                          onClick={() => markStatus(appt.id, "completed")}
+                          disabled={isPending}
+                        />
+                        <IconBtn
+                          title="Cancel"
+                          onClick={() => markStatus(appt.id, "cancelled")}
+                          disabled={isPending}
+                          cls="hover:bg-vault-negative-light hover:text-vault-negative"
+                        >
+                          <XCircle className="size-3.5" />
+                        </IconBtn>
+                      </>
                     )}
-                    {(appt.status === "scheduled" || appt.status === "in-progress") && (
-                      <button
-                        onClick={() => cancelAppt(appt.id)}
-                        className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-vault-negative-light hover:text-vault-negative"
-                        title="Cancel"
-                      >
-                        <XCircle className="size-3.5" />
-                      </button>
-                    )}
-                    {appt.status === "no-show" && (
-                      <button
-                        onClick={() => startAppt(appt.id)}
-                        className="flex items-center gap-1 rounded-lg bg-muted/50 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted"
-                      >
-                        <RotateCcw className="size-2.5" />
-                        Reschedule
-                      </button>
-                    )}
-                    {appt.status === "completed" && (
-                      <button className="flex items-center gap-1 rounded-lg bg-muted/40 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/70">
-                        <FileText className="size-2.5" />
-                        Note
-                      </button>
+                    {uiStatus === "completed" && (
+                      <ActionBtn
+                        cls="bg-muted/40 text-muted-foreground hover:bg-muted/70"
+                        icon={<FileText className="size-2.5" />}
+                        label="Note"
+                        onClick={() => {}}
+                        disabled={false}
+                      />
                     )}
                   </div>
                 </div>
@@ -296,9 +420,75 @@ export default function AppointmentsPage() {
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {appts.length} appointments
-      </p>
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Showing {filtered.length} of {appointments.length} appointments
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Sub-components ──────────────────────────────────────────────
+
+function ActionBtn({
+  cls, icon, label, onClick, disabled,
+}: {
+  cls: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${cls}`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function IconBtn({
+  title, onClick, disabled, cls, children,
+}: {
+  title: string;
+  onClick: () => void;
+  disabled: boolean;
+  cls: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors disabled:opacity-50 ${cls}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="divide-y divide-border/50">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-4 px-5 py-4" style={{ opacity: 1 - i * 0.18 }}>
+          <div className="size-9 shrink-0 rounded-xl bg-muted/40 animate-pulse" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-36 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-24 rounded bg-muted/30 animate-pulse" />
+          </div>
+          <div className="h-3 w-16 rounded bg-muted/30 animate-pulse" />
+          <div className="h-3 w-20 rounded bg-muted/30 animate-pulse" />
+          <div className="h-5 w-20 rounded-full bg-muted/30 animate-pulse" />
+          <div className="h-6 w-24 rounded-lg bg-muted/20 animate-pulse" />
+        </div>
+      ))}
     </div>
   );
 }

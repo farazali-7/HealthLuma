@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import {
   User,
   Building2,
   Clock,
   Bell,
   Shield,
-  ChevronRight,
   Check,
   Eye,
   EyeOff,
@@ -21,8 +20,14 @@ import {
   AlertCircle,
   Monitor,
   Smartphone,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getDoctorScheduleAction,
+  saveDoctorScheduleAction,
+  type ScheduleRow,
+} from "./actions";
 
 type Tab = "profile" | "clinic" | "schedule" | "notifications" | "security";
 
@@ -93,7 +98,6 @@ export default function SettingsPage() {
                       {item.desc}
                     </p>
                   </div>
-                  {tab === item.id && <ChevronRight className="ml-auto size-3.5 shrink-0" />}
                 </button>
               ))}
             </div>
@@ -126,22 +130,49 @@ export default function SettingsPage() {
 // ─── Profile Tab ───────────────────────────────────────────────
 
 function ProfileTab() {
-  const [saved, setSaved] = useState(false);
+  const [editing,  setEditing]  = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   function handleSave() {
     setSaved(true);
+    setEditing(false);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  function handleCancel() {
+    setEditing(false);
+    setResetKey((k) => k + 1);
   }
 
   return (
     <div className="space-y-4">
-      {/* Identity card */}
       <div className="rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border/60 px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">Doctor Profile</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Your professional information shown to patients on booking pages</p>
+        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Doctor Profile</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Your professional information shown to patients on booking pages
+            </p>
+          </div>
+          {!editing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-3" />
+              Edit
+            </Button>
+          ) : (
+            <span className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
+              Editing
+            </span>
+          )}
         </div>
-        <div className="p-6 space-y-6">
+
+        <div key={resetKey} className="p-6 space-y-6">
 
           {/* Avatar + credentials */}
           <div className="flex items-start gap-5">
@@ -149,9 +180,11 @@ function ProfileTab() {
               <div className="flex size-20 items-center justify-center rounded-2xl bg-[#4D9A7F]/10 ring-1 ring-[#4D9A7F]/20">
                 <span className="text-2xl font-bold text-[#4D9A7F]">JH</span>
               </div>
-              <button className="absolute -bottom-1.5 -right-1.5 flex size-7 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted/60">
-                <Camera className="size-3.5 text-muted-foreground" />
-              </button>
+              {editing && (
+                <button className="absolute -bottom-1.5 -right-1.5 flex size-7 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted/60">
+                  <Camera className="size-3.5 text-muted-foreground" />
+                </button>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-base font-semibold text-foreground">Dr. Jack Harrison</p>
@@ -167,9 +200,6 @@ function ProfileTab() {
                   GMC #1234567
                 </span>
               </div>
-              <Button variant="outline" size="sm" className="mt-3 h-7 text-xs">
-                Upload photo
-              </Button>
             </div>
           </div>
 
@@ -177,10 +207,10 @@ function ProfileTab() {
           <div>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Personal Details</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name"        defaultValue="Dr. Jack Harrison" />
-              <Field label="Specialty"        defaultValue="Family Medicine" />
-              <Field label="Qualifications"   defaultValue="MBBS, MRCGP, CCFP" />
-              <Field label="GMC / License No." defaultValue="1234567" />
+              <Field label="Full name"         defaultValue="Dr. Jack Harrison"  disabled={!editing} />
+              <Field label="Specialty"         defaultValue="Family Medicine"     disabled={!editing} />
+              <Field label="Qualifications"    defaultValue="MBBS, MRCGP, CCFP"  disabled={!editing} />
+              <Field label="GMC / License No." defaultValue="1234567"            disabled={!editing} />
             </div>
           </div>
 
@@ -188,25 +218,40 @@ function ProfileTab() {
           <div>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Contact</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldIcon label="Email" defaultValue="dr.harrison@healthluma.com" type="email" icon={<Mail className="size-3.5" />} />
-              <FieldIcon label="Phone" defaultValue="+44 20 7946 0123"                       icon={<Phone className="size-3.5" />} />
+              <FieldIcon label="Email" defaultValue="dr.harrison@healthluma.com" type="email" icon={<Mail className="size-3.5" />} disabled={!editing} />
+              <FieldIcon label="Phone" defaultValue="+44 20 7946 0123"           icon={<Phone className="size-3.5" />}            disabled={!editing} />
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Short Bio</p>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Shown on the patient-facing booking page</label>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Short Bio</p>
             <textarea
               rows={3}
+              disabled={!editing}
               defaultValue="Dr. Harrison is a fully registered GP with 12 years of experience in family medicine, chronic disease management, and preventive care."
-              className="w-full resize-none rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+              className={`w-full resize-none rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
+                !editing
+                  ? "border-transparent bg-transparent cursor-default"
+                  : "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
+              }`}
             />
           </div>
 
-          <div className="flex justify-end border-t border-border/60 pt-4">
-            <SaveButton saved={saved} onClick={handleSave} />
-          </div>
+          {/* Footer actions — only visible when editing */}
+          {editing && (
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={handleCancel}
+              >
+                Discard
+              </Button>
+              <SaveButton saved={saved} onClick={handleSave} />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -216,28 +261,63 @@ function ProfileTab() {
 // ─── Clinic Tab ────────────────────────────────────────────────
 
 function ClinicTab() {
-  const [saved, setSaved] = useState(false);
+  const [editing,  setEditing]  = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   function handleSave() {
     setSaved(true);
+    setEditing(false);
     setTimeout(() => setSaved(false), 2000);
   }
+
+  function handleCancel() {
+    setEditing(false);
+    setResetKey((k) => k + 1);
+  }
+
+  const selectCls = (isEditing: boolean) =>
+    `w-full rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
+      isEditing
+        ? "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
+        : "border-transparent bg-transparent cursor-default appearance-none"
+    }`;
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border/60 px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">Clinic Information</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Appears on booking confirmations and patient-facing pages</p>
+        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Clinic Information</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Appears on booking confirmations and patient-facing pages
+            </p>
+          </div>
+          {!editing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-3" />
+              Edit
+            </Button>
+          ) : (
+            <span className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
+              Editing
+            </span>
+          )}
         </div>
-        <div className="space-y-6 p-6">
+
+        <div key={resetKey} className="space-y-6 p-6">
 
           {/* Clinic identity */}
           <div>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Identity</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Clinic name" defaultValue="HealthLuma Clinic" />
-              <FieldIcon label="Phone" defaultValue="+44 20 7946 0100" icon={<Phone className="size-3.5" />} />
+              <Field label="Clinic name" defaultValue="HealthLuma Clinic"  disabled={!editing} />
+              <FieldIcon label="Phone"   defaultValue="+44 20 7946 0100"   icon={<Phone className="size-3.5" />} disabled={!editing} />
             </div>
           </div>
 
@@ -245,12 +325,12 @@ function ClinicTab() {
           <div>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Address</p>
             <div className="grid gap-4">
-              <FieldIcon label="Address" defaultValue="Suite 204, 84 Harley Street" icon={<MapPin className="size-3.5" />} />
+              <FieldIcon label="Address"  defaultValue="Suite 204, 84 Harley Street" icon={<MapPin className="size-3.5" />} disabled={!editing} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="City"     defaultValue="London"  />
-                <Field label="Postcode" defaultValue="W1G 7HW" />
+                <Field label="City"     defaultValue="London"  disabled={!editing} />
+                <Field label="Postcode" defaultValue="W1G 7HW" disabled={!editing} />
               </div>
-              <FieldIcon label="Website" defaultValue="https://healthluma.com" icon={<Globe className="size-3.5" />} />
+              <FieldIcon label="Website" defaultValue="https://healthluma.com" icon={<Globe className="size-3.5" />} disabled={!editing} />
             </div>
           </div>
 
@@ -260,7 +340,7 @@ function ClinicTab() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Default slot duration</label>
-                <select defaultValue="30 minutes" className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all">
+                <select disabled={!editing} defaultValue="30 minutes" className={selectCls(editing)}>
                   <option>15 minutes</option>
                   <option>30 minutes</option>
                   <option>45 minutes</option>
@@ -269,7 +349,7 @@ function ClinicTab() {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Buffer between slots</label>
-                <select defaultValue="5 minutes" className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all">
+                <select disabled={!editing} defaultValue="5 minutes" className={selectCls(editing)}>
                   <option>None</option>
                   <option>5 minutes</option>
                   <option>10 minutes</option>
@@ -285,11 +365,20 @@ function ClinicTab() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Same-day booking opens</label>
-                <input type="time" defaultValue="08:00" className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all" />
+                <input
+                  type="time"
+                  disabled={!editing}
+                  defaultValue="08:00"
+                  className={`w-full rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
+                    editing
+                      ? "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
+                      : "border-transparent bg-transparent cursor-default"
+                  }`}
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Max advance booking</label>
-                <select defaultValue="4 weeks" className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all">
+                <select disabled={!editing} defaultValue="4 weeks" className={selectCls(editing)}>
                   <option>2 weeks</option>
                   <option>4 weeks</option>
                   <option>8 weeks</option>
@@ -302,9 +391,19 @@ function ClinicTab() {
             </p>
           </div>
 
-          <div className="flex justify-end border-t border-border/60 pt-4">
-            <SaveButton saved={saved} onClick={handleSave} />
-          </div>
+          {editing && (
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={handleCancel}
+              >
+                Discard
+              </Button>
+              <SaveButton saved={saved} onClick={handleSave} />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -315,29 +414,105 @@ function ClinicTab() {
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const INITIAL_SCHEDULE: Record<string, { open: string; close: string; enabled: boolean }> = {
-  Monday:    { open: "09:00", close: "17:30", enabled: true  },
-  Tuesday:   { open: "09:00", close: "17:30", enabled: true  },
-  Wednesday: { open: "09:00", close: "17:30", enabled: true  },
-  Thursday:  { open: "09:00", close: "17:30", enabled: true  },
-  Friday:    { open: "09:00", close: "16:00", enabled: true  },
+// DB uses 0=Sun, 1=Mon … 6=Sat (JS Date.getDay() convention)
+const DAY_TO_DOW: Record<string, number> = {
+  Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+  Thursday: 4, Friday: 5, Saturday: 6,
+};
+const DOW_TO_DAY: Record<number, string> = {
+  0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday",
+  4: "Thursday", 5: "Friday", 6: "Saturday",
+};
+
+const FALLBACK_SCHEDULE: Record<string, { open: string; close: string; enabled: boolean }> = {
+  Monday:    { open: "09:00", close: "17:00", enabled: true  },
+  Tuesday:   { open: "09:00", close: "17:00", enabled: true  },
+  Wednesday: { open: "09:00", close: "17:00", enabled: true  },
+  Thursday:  { open: "09:00", close: "17:00", enabled: true  },
+  Friday:    { open: "09:00", close: "17:00", enabled: true  },
   Saturday:  { open: "09:00", close: "12:00", enabled: false },
   Sunday:    { open: "09:00", close: "17:00", enabled: false },
 };
 
 function ScheduleTab() {
-  const [days, setDays] = useState(INITIAL_SCHEDULE);
-  const [saved, setSaved] = useState(false);
+  const [editing,   setEditing]   = useState(false);
+  const [days,      setDays]      = useState(FALLBACK_SCHEDULE);
+  const [backup,    setBackup]    = useState(FALLBACK_SCHEDULE);
+  const [loading,   setLoading]   = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saved,     setSaved]     = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const toggle = (day: string) =>
+  // ── Load real schedule from DB on mount ──
+  useEffect(() => {
+    getDoctorScheduleAction().then((rows: ScheduleRow[]) => {
+      if (rows.length === 0) { setLoading(false); return; }
+      const schedule = { ...FALLBACK_SCHEDULE };
+      for (const row of rows) {
+        const name = DOW_TO_DAY[row.day_of_week];
+        if (name) {
+          schedule[name] = {
+            open:    row.start_time.slice(0, 5), // "09:00:00" → "09:00"
+            close:   row.end_time.slice(0, 5),
+            enabled: row.is_active,
+          };
+        }
+      }
+      setDays(schedule);
+      setBackup(schedule);
+      setLoading(false);
+    });
+  }, []);
+
+  const toggle   = (day: string) =>
     setDays((prev) => ({ ...prev, [day]: { ...prev[day], enabled: !prev[day].enabled } }));
 
+  const setTime  = (day: string, field: "open" | "close", val: string) =>
+    setDays((prev) => ({ ...prev, [day]: { ...prev[day], [field]: val } }));
+
+  function handleEdit() {
+    setBackup(days);
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  function handleCancel() {
+    setDays(backup);
+    setEditing(false);
+    setSaveError(null);
+  }
+
   function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaveError(null);
+    const rows: ScheduleRow[] = ALL_DAYS.map((name) => ({
+      day_of_week:        DAY_TO_DOW[name],
+      start_time:         days[name].open,
+      end_time:           days[name].close,
+      slot_duration_mins: 30,
+      is_active:          days[name].enabled,
+    }));
+
+    startTransition(async () => {
+      const { error } = await saveDoctorScheduleAction(rows);
+      if (error) {
+        setSaveError("Failed to save. Please try again.");
+        return;
+      }
+      setBackup(days);
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 2000);
+    });
   }
 
   const activeDays = ALL_DAYS.filter((d) => days[d].enabled).length;
+
+  const timeCls = (isEditing: boolean) =>
+    `rounded-lg border px-3 py-1.5 text-sm text-foreground transition-all ${
+      isEditing
+        ? "border-border bg-muted/20 focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/15"
+        : "border-transparent bg-transparent cursor-default"
+    }`;
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm">
@@ -346,14 +521,33 @@ function ScheduleTab() {
           <h2 className="text-sm font-semibold text-foreground">Working Hours</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Set your availability for patient booking</p>
         </div>
-        <span className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[11px] font-semibold text-[#4D9A7F]">
-          {activeDays} days active
-        </span>
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <span className="text-[11px] text-muted-foreground">Loading…</span>
+          ) : (
+            <>
+              <span className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[11px] font-semibold text-[#4D9A7F]">
+                {activeDays} days active
+              </span>
+              {!editing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={handleEdit}
+                >
+                  <Pencil className="size-3" />
+                  Edit
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="divide-y divide-border/40">
         {ALL_DAYS.map((day) => {
-          const config   = days[day];
+          const config    = days[day];
           const isWeekend = day === "Saturday" || day === "Sunday";
           return (
             <div
@@ -364,10 +558,11 @@ function ScheduleTab() {
             >
               {/* Toggle */}
               <button
-                onClick={() => toggle(day)}
+                onClick={() => editing && toggle(day)}
+                disabled={!editing}
                 className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
                   config.enabled ? "bg-[#4D9A7F]" : "bg-muted/60"
-                }`}
+                } ${!editing ? "cursor-default" : "cursor-pointer"}`}
               >
                 <span className={`inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform ${
                   config.enabled ? "translate-x-4" : "translate-x-0.5"
@@ -377,24 +572,25 @@ function ScheduleTab() {
               {/* Day label */}
               <span className={`w-24 text-sm font-medium ${config.enabled ? "text-foreground" : "text-muted-foreground"}`}>
                 {day}
-                {isWeekend && (
-                  <span className="ml-1.5 text-[9px] font-normal text-muted-foreground/60 uppercase tracking-wide">wknd</span>
-                )}
               </span>
 
-              {/* Time inputs */}
+              {/* Time inputs — controlled so values are always readable */}
               {config.enabled ? (
                 <div className="flex items-center gap-2">
                   <input
                     type="time"
-                    defaultValue={config.open}
-                    className="rounded-lg border border-border bg-muted/20 px-3 py-1.5 text-sm text-foreground focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/15 transition-all"
+                    disabled={!editing}
+                    value={config.open}
+                    onChange={(e) => setTime(day, "open", e.target.value)}
+                    className={timeCls(editing)}
                   />
                   <span className="text-xs text-muted-foreground">to</span>
                   <input
                     type="time"
-                    defaultValue={config.close}
-                    className="rounded-lg border border-border bg-muted/20 px-3 py-1.5 text-sm text-foreground focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/15 transition-all"
+                    disabled={!editing}
+                    value={config.close}
+                    onChange={(e) => setTime(day, "close", e.target.value)}
+                    className={timeCls(editing)}
                   />
                 </div>
               ) : (
@@ -405,12 +601,25 @@ function ScheduleTab() {
         })}
       </div>
 
-      <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
-        <p className="text-[11px] text-muted-foreground">
-          Same-day slots are released at 8:00 AM daily.
-        </p>
-        <SaveButton saved={saved} onClick={handleSave} label="Save schedule" />
-      </div>
+      {editing && (
+        <div className="border-t border-border/60 px-6 py-4 space-y-2">
+          {saveError && (
+            <p className="text-xs text-vault-negative">{saveError}</p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleCancel}
+              disabled={isPending}
+            >
+              Discard
+            </Button>
+            <SaveButton saved={saved} onClick={handleSave} label={isPending ? "Saving…" : "Save schedule"} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -422,28 +631,28 @@ const NOTIF_GROUPS = [
     label: "Appointments",
     desc: "Booking, cancellation, and reminder alerts",
     items: [
-      { id: "new_booking",   label: "New booking received",          sub: "Instant alert when a patient books",       default: true  },
-      { id: "cancellation",  label: "Appointment cancelled",         sub: "When a patient cancels their slot",        default: true  },
-      { id: "reschedule",    label: "Reschedule request",            sub: "Patient requests a different time",        default: true  },
-      { id: "reminder_1h",   label: "1-hour reminder (for you)",     sub: "Personal reminder before each appointment", default: false },
+      { id: "new_booking",  label: "New booking received",        sub: "Instant alert when a patient books",        default: true  },
+      { id: "cancellation", label: "Appointment cancelled",        sub: "When a patient cancels their slot",         default: true  },
+      { id: "reschedule",   label: "Reschedule request",           sub: "Patient requests a different time",         default: true  },
+      { id: "reminder_1h",  label: "1-hour reminder (for you)",    sub: "Personal reminder before each appointment", default: false },
     ],
   },
   {
     label: "Patients",
     desc: "Registration and record activity",
     items: [
-      { id: "new_patient",   label: "New patient registered",        sub: "First-time patient signs up",              default: true  },
-      { id: "record_upload", label: "Document uploaded",             sub: "Patient attaches a file to their record",  default: true  },
-      { id: "refill_req",    label: "Prescription refill request",   sub: "Patient requests a repeat prescription",   default: true  },
+      { id: "new_patient",   label: "New patient registered",       sub: "First-time patient signs up",              default: true  },
+      { id: "record_upload", label: "Document uploaded",            sub: "Patient attaches a file to their record",  default: true  },
+      { id: "refill_req",    label: "Prescription refill request",  sub: "Patient requests a repeat prescription",   default: true  },
     ],
   },
   {
     label: "Billing",
     desc: "Payments, invoices, and subscriptions",
     items: [
-      { id: "payment_rcvd",  label: "Payment received",             sub: "Confirmed payment against an invoice",      default: true  },
-      { id: "overdue",       label: "Invoice overdue",              sub: "Invoice has passed its due date",            default: true  },
-      { id: "pro_signup",    label: "New Pro membership",           sub: "Patient upgrades to Family Care Pro",        default: true  },
+      { id: "payment_rcvd", label: "Payment received",   sub: "Confirmed payment against an invoice",  default: true  },
+      { id: "overdue",      label: "Invoice overdue",    sub: "Invoice has passed its due date",        default: true  },
+      { id: "pro_signup",   label: "New Pro membership", sub: "Patient upgrades to Family Care Pro",   default: true  },
     ],
   },
 ];
@@ -511,7 +720,7 @@ function SecurityTab() {
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border/60 px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">Change Password</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Use a strong password you don't use elsewhere</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Use a strong password you don&apos;t use elsewhere</p>
         </div>
         <div className="space-y-4 p-6">
           <Field label="Current password" type="password" placeholder="••••••••" />
@@ -531,6 +740,9 @@ function SecurityTab() {
                 {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Minimum 8 characters — include letters, numbers, and a symbol.
+            </p>
           </div>
           <Field label="Confirm new password" type="password" placeholder="••••••••" />
           <div className="flex justify-end border-t border-border/60 pt-4">
@@ -547,8 +759,8 @@ function SecurityTab() {
         </div>
         <div className="divide-y divide-border/40">
           {[
-            { device: "Chrome on macOS",   icon: <Monitor className="size-4" />,    loc: "London, UK", time: "Now · current session", current: true  },
-            { device: "Safari on iPhone",  icon: <Smartphone className="size-4" />, loc: "London, UK", time: "3 hours ago",            current: false },
+            { device: "Chrome on macOS",  icon: <Monitor className="size-4" />,    loc: "London, UK", time: "Now · current session", current: true  },
+            { device: "Safari on iPhone", icon: <Smartphone className="size-4" />, loc: "London, UK", time: "3 hours ago",            current: false },
           ].map((s, i) => (
             <div key={i} className="flex items-center gap-4 px-6 py-4">
               <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
@@ -597,8 +809,18 @@ function SecurityTab() {
 
 // ─── Shared components ─────────────────────────────────────────
 
-function Field({ label, defaultValue = "", placeholder, type = "text" }: {
-  label: string; defaultValue?: string; placeholder?: string; type?: string;
+function Field({
+  label,
+  defaultValue = "",
+  placeholder,
+  type = "text",
+  disabled = false,
+}: {
+  label: string;
+  defaultValue?: string;
+  placeholder?: string;
+  type?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -607,27 +829,51 @@ function Field({ label, defaultValue = "", placeholder, type = "text" }: {
         type={type}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+        disabled={disabled}
+        className={`w-full rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
+          disabled
+            ? "border-transparent bg-transparent cursor-default"
+            : "border-border bg-muted/20 placeholder:text-muted-foreground/40 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
+        }`}
       />
     </div>
   );
 }
 
-function FieldIcon({ label, defaultValue = "", placeholder, type = "text", icon }: {
-  label: string; defaultValue?: string; placeholder?: string; type?: string; icon: React.ReactNode;
+function FieldIcon({
+  label,
+  defaultValue = "",
+  placeholder,
+  type = "text",
+  icon,
+  disabled = false,
+}: {
+  label: string;
+  defaultValue?: string;
+  placeholder?: string;
+  type?: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <div>
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted-foreground/50">
+        <span className={`pointer-events-none absolute inset-y-0 left-3.5 flex items-center transition-colors ${
+          disabled ? "text-muted-foreground/30" : "text-muted-foreground/50"
+        }`}>
           {icon}
         </span>
         <input
           type={type}
           defaultValue={defaultValue}
           placeholder={placeholder}
-          className="w-full rounded-xl border border-border bg-muted/20 py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+          disabled={disabled}
+          className={`w-full rounded-xl border py-2.5 pl-9 pr-4 text-sm text-foreground transition-all ${
+            disabled
+              ? "border-transparent bg-transparent cursor-default"
+              : "border-border bg-muted/20 placeholder:text-muted-foreground/40 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
+          }`}
         />
       </div>
     </div>

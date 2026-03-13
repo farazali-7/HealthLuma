@@ -109,9 +109,21 @@ export default function RecordsPage() {
         >
           Health Records
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Prescriptions and clinical documents
-        </p>
+        <div className="mt-2 flex items-center gap-5 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Pill className="size-3.5 text-primary" />
+            <strong className="font-semibold text-foreground">
+              {PRESCRIPTIONS.filter((r) => r.status === "active").length}
+            </strong>{" "}
+            active prescriptions
+          </span>
+          <span className="text-border">·</span>
+          <span className="flex items-center gap-1.5">
+            <FileText className="size-3.5 text-muted-foreground" />
+            <strong className="font-semibold text-foreground">{DOCUMENTS.length}</strong>{" "}
+            documents
+          </span>
+        </div>
       </div>
 
       {/* ── Search ── */}
@@ -151,54 +163,34 @@ export default function RecordsPage() {
 
       {/* ── Prescriptions ── */}
       {tab === "prescriptions" && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {filteredRx.length === 0 && (
             <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center">
               <p className="text-sm text-muted-foreground">No prescriptions match your search.</p>
             </div>
           )}
-          {filteredRx.map((rx, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-border bg-card p-5 shadow-sm"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
-                  rx.status === "active" ? "bg-primary/10" : "bg-muted/40"
-                }`}>
-                  <Pill className={`size-5 ${
-                    rx.status === "active" ? "text-primary" : "text-muted-foreground/50"
-                  }`} />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">{rx.name}</h3>
-                    <span className="text-xs font-medium text-muted-foreground">{rx.dose}</span>
-                    <span className={`ml-auto rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                      rx.status === "active"
-                        ? "bg-vault-positive-light text-vault-positive"
-                        : "bg-muted/60 text-muted-foreground"
-                    }`}>
-                      {rx.status === "active" ? "Active" : "Completed"}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-muted-foreground">{rx.frequency}</p>
-                  <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                    <span>Prescribed {rx.prescribed}</span>
-                    <span>&middot; Dr. Jack</span>
-                    {rx.status === "active" && (
-                      <span>&middot; {rx.refills} refills remaining</span>
-                    )}
-                  </div>
-                </div>
-                {rx.status === "active" && (
-                  <Button size="sm" variant="outline" className="h-8 shrink-0 gap-1.5 text-xs">
-                    Request Refill
-                  </Button>
-                )}
-              </div>
+          {/* Active group */}
+          {filteredRx.filter((r) => r.status === "active").length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
+                Active
+              </p>
+              {filteredRx.filter((r) => r.status === "active").map((rx, i) => (
+                <PrescriptionCard key={i} rx={rx} />
+              ))}
             </div>
-          ))}
+          )}
+          {/* Completed group */}
+          {filteredRx.filter((r) => r.status !== "active").length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
+                Past
+              </p>
+              {filteredRx.filter((r) => r.status !== "active").map((rx, i) => (
+                <PrescriptionCard key={i} rx={rx} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -249,6 +241,53 @@ export default function RecordsPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Sub-components ─────────────────────────────────────────────
+
+type Prescription = (typeof PRESCRIPTIONS)[number];
+
+function PrescriptionCard({ rx }: { rx: Prescription }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+            rx.status === "active" ? "bg-primary/10" : "bg-muted/40"
+          }`}
+        >
+          <Pill
+            className={`size-5 ${
+              rx.status === "active"
+                ? "text-primary"
+                : "text-muted-foreground/50"
+            }`}
+          />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">{rx.name}</h3>
+            <span className="text-xs font-medium text-muted-foreground">
+              {rx.dose}
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-foreground">{rx.frequency}</p>
+          <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+            <span>Prescribed {rx.prescribed}</span>
+            <span>&middot; Dr. Jack</span>
+            {rx.status === "active" && (
+              <span>&middot; {rx.refills} refills remaining</span>
+            )}
+          </div>
+        </div>
+        {rx.status === "active" && (
+          <Button size="sm" variant="outline" className="h-8 shrink-0 gap-1.5 text-xs">
+            Request Refill
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

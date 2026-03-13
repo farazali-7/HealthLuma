@@ -16,7 +16,6 @@ import {
   FileText,
   Megaphone,
   Play,
-  DollarSign,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -124,15 +123,15 @@ export default function DoctorPage() {
 
       {/* ── 2. Quick Actions ── */}
       <section>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="flex flex-wrap gap-2">
           {QUICK_ACTIONS.map((action, i) => (
             <Link
               key={i}
               href={action.href}
-              className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all hover:shadow-md ${action.color}`}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-medium transition-all hover:shadow-sm ${action.color}`}
             >
               <span className="shrink-0">{action.icon}</span>
-              <span className="text-sm font-medium">{action.label}</span>
+              {action.label}
             </Link>
           ))}
         </div>
@@ -156,10 +155,10 @@ export default function DoctorPage() {
             trend={`+${seen} today`}
           />
           <StatCard
-            label="Revenue Today"
-            value={`$${seen * 100}`}
-            subvalue={`${total - seen} remaining`}
-            icon={<DollarSign className="size-3.5" />}
+            label="Next Patient"
+            value={queue.find((p) => p.status === "upcoming")?.time ?? "—"}
+            subvalue={queue.find((p) => p.status === "upcoming")?.name.split(" ")[0] ?? "All seen"}
+            icon={<Clock className="size-3.5" />}
           />
           <StatCard
             label="Pending Tasks"
@@ -399,20 +398,6 @@ export default function DoctorPage() {
                 </p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">vs last week</p>
               </div>
-            </div>
-            {/* Weekly bar */}
-            <div className="flex items-end gap-1.5 pt-1">
-              {([3, 5, 4, 6, 5, 4, seen] as number[]).map((count, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div
-                    className={`w-full rounded-sm transition-all ${i === 6 ? "bg-[#4D9A7F]" : "bg-muted/60"}`}
-                    style={{ height: `${(count / 7) * 48}px` }}
-                  />
-                  <span className="text-[9px] text-muted-foreground">
-                    {["Mo", "Tu", "We", "Th", "Fr", "Sa", "To"][i]}
-                  </span>
-                </div>
-              ))}
             </div>
           </div>
         </div>

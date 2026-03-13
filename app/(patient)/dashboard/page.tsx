@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { useUser } from "./context";
+import { BookingModal } from "./_components/BookingModal";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -201,6 +202,7 @@ function AppointmentPanel({
 export default function DashboardPage() {
   const user = useUser();
   const [selectedAppt, setSelectedAppt] = useState<UpcomingAppt | null>(null);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   const displayName =
     user.user_metadata?.full_name ||
@@ -223,6 +225,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
       <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
 
         {/* ── 1. Header ────────────────────────────── */}
@@ -241,14 +244,12 @@ export default function DashboardPage() {
           </div>
 
           <Button
-            asChild
             size="sm"
             className="hidden shrink-0 items-center gap-1.5 sm:flex"
+            onClick={() => setBookingOpen(true)}
           >
-            <Link href="/dashboard/appointments">
-              <Plus className="size-3.5" />
-              Book Appointment
-            </Link>
+            <Plus className="size-3.5" />
+            Book Appointment
           </Button>
         </section>
 
@@ -317,7 +318,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right — Stats strip */}
+          {/* Right — Stats + Upcoming */}
           <div className="lg:col-span-7 flex flex-col gap-3">
             <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <Link href="/dashboard/records" className="group flex flex-col gap-1 px-4 py-4 transition-colors hover:bg-muted/20">
@@ -352,6 +353,46 @@ export default function DashboardPage() {
                 <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>6</p>
                 <p className="text-[11px] text-muted-foreground">Most recent: Feb 10</p>
               </Link>
+            </div>
+
+            {/* Upcoming appointments — compact list */}
+            <div className="flex-1 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Schedule</p>
+                  <h2 className="mt-0.5 text-sm font-semibold text-foreground">Upcoming</h2>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] text-muted-foreground" asChild>
+                  <Link href="/dashboard/appointments">View all <ChevronRight className="size-3" /></Link>
+                </Button>
+              </div>
+              <div className="divide-y divide-border/50">
+                {upcomingAppointments.map((appt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedAppt(appt)}
+                    className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/20"
+                  >
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
+                      <span className="text-[10px] font-bold text-primary">{appt.avatar}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">{appt.type}</p>
+                      <p className="text-[11px] text-muted-foreground">{appt.date} · {appt.time}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      appt.daysOut <= 3
+                        ? "bg-vault-positive-light text-vault-positive"
+                        : appt.daysOut <= 14
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted/60 text-muted-foreground"
+                    }`}>
+                      {appt.daysOut}d
+                    </span>
+                    <ChevronRight className="size-3 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -478,59 +519,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ── 4. Upcoming Appointments ─────────────── */}
-        <section
-          className="animate-fade-up"
-          style={{ animationDelay: "200ms" }}
-        >
-          <div className="rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Schedule</p>
-                <h2 className="mt-0.5 text-sm font-semibold text-foreground">Upcoming Appointments</h2>
-              </div>
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] text-muted-foreground" asChild>
-                <Link href="/dashboard/appointments">View all <ChevronRight className="size-3" /></Link>
-              </Button>
-            </div>
-
-            <div className="divide-y divide-border/50">
-              {upcomingAppointments.map((appt, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedAppt(appt)}
-                  className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/20"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10">
-                    <span className="text-[11px] font-semibold text-primary">{appt.avatar}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{appt.doctor}</p>
-                    <p className="text-[11px] text-muted-foreground">{appt.specialty} · {appt.type}</p>
-                  </div>
-                  <div className="hidden shrink-0 sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <MapPin className="size-3" />
-                    <span className="max-w-45 truncate">{appt.location}</span>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs font-semibold text-foreground">{appt.date}</p>
-                    <p className="text-[11px] text-muted-foreground">{appt.time}</p>
-                  </div>
-                  <span className={`hidden shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:inline-flex ${
-                    appt.daysOut <= 3
-                      ? "bg-vault-positive-light text-vault-positive"
-                      : appt.daysOut <= 14
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted/60 text-muted-foreground"
-                  }`}>
-                    In {appt.daysOut}d
-                  </span>
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
       </div>
 
       {/* ── Appointment Detail Slide-over ── */}

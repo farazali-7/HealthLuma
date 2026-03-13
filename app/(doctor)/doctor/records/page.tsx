@@ -12,6 +12,7 @@ import {
   FlaskConical,
   Pill,
   Stethoscope,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -108,14 +109,26 @@ export default function RecordsPage() {
         </div>
       </div>
 
+      {/* Abnormal alert */}
+      {abnormalCount > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-vault-negative/30 bg-vault-negative-light px-4 py-3">
+          <AlertCircle className="size-4 shrink-0 text-vault-negative" />
+          <p className="text-sm">
+            <span className="font-semibold text-vault-negative">
+              {abnormalCount} abnormal result{abnormalCount > 1 ? "s" : ""}
+            </span>{" "}
+            <span className="text-muted-foreground">flagged — review before next consultation.</span>
+          </p>
+        </div>
+      )}
+
       {/* Stats strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Clinical Notes", value: notesCount,    cls: "text-primary",            dot: "bg-primary"          },
           { label: "Lab Results",    value: labsCount,     cls: "text-[#4D9A7F]",          dot: "bg-[#4D9A7F]"        },
           { label: "Reports",        value: reportsCount,  cls: "text-muted-foreground",   dot: "bg-muted-foreground" },
           { label: "Referrals",      value: referralCount, cls: "text-violet-600",         dot: "bg-violet-500"       },
-          { label: "Abnormal",       value: abnormalCount, cls: "text-vault-negative",     dot: "bg-vault-negative"   },
         ].map((s, i) => (
           <div key={i} className="rounded-xl border border-border bg-card px-4 py-3">
             <div className="flex items-center gap-1.5 mb-1">
