@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next build:*)",
+      "Bash(ls \"c:\\\\Users\\\\S\\\\Desktop\\\\healthLuma\\\\app\\\\\\(patient\\)\\\\dashboard\"\")",
+      "Bash(npx tsc --noEmit)",
+      "Bash(ls c:/Users/S/Desktop/healthLuma/app/\\\\\\(patient\\\\\\)/dashboard/appointments/)",
+      "Bash(npm run:*)",
+      "Bash(ls app/\\\\\\(patient\\\\\\)/dashboard/settings/)",
+      "Bash(ls app/\\\\\\(doctor\\\\\\)/doctor/)",
+      "Bash(node -e \"require\\(''fs''\\).readFileSync\\(''app/\\(patient\\)/dashboard/settings/page.tsx'', ''utf8''\\); console.log\\(''File OK - lines:'', require\\(''fs''\\).readFileSync\\(''app/\\(patient\\)/dashboard/settings/page.tsx'', ''utf8''\\).split\\(''\\\\n''\\).length\\)\")",
+      "Bash(ls -la \"c:\\\\Users\\\\S\\\\Desktop\\\\healthLuma\\\\app\\\\\\(patient\\)\\\\dashboard\"\")",
+      "Bash(ls -la '/c/Users/S/Desktop/healthLuma/app/\\(patient\\)/dashboard/')"
+    ]
+  }
+}
