@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient }     from "@/lib/supabase/server";
+import { sendNotification } from "@/lib/supabase/service";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -21,18 +22,31 @@ export interface PatientAppointment {
   } | null;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────
+
+function fmtTime(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+function fmtDate(dateStr: string): string {
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString("en-US", {
+    month:    "long",
+    day:      "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // ─── Queries ─────────────────────────────────────────────────────
 
 /**
  * Fetch all appointments for the authenticated patient,
  * joined with the doctor's public profile.
- * RLS on appointments guarantees patient_id = auth.uid().
+ * RLS guarantees patient_id = auth.uid().
  */
 export async function getPatientAppointmentsAction(): Promise<PatientAppointment[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
   const { data, error } = await supabase
@@ -68,12 +82,16 @@ export async function getPatientAppointmentsAction(): Promise<PatientAppointment
 // ─── Mutations ────────────────────────────────────────────────────
 
 /**
- * Cancel an upcoming appointment.
- * RLS policy `appointments__patient_cancel` enforces:
- *   - patient_id = auth.uid()
- *   - old status must be 'upcoming'
- *   - new status must be 'cancelled'
- * This server action adds an extra application-layer guard.
+ * Cancel an upcoming appointment owned by the authenticated patient.
+ *
+ * Steps:
+ *   1. Verify the appointment exists, belongs to this patient, and is upcoming.
+ *   2. Set status = 'cancelled'.
+ *   3. Notify the doctor (fire-and-forget — cancel is never blocked by it).
+ *
+ * RLS `appointments__patient_cancel` provides a DB-level second guard:
+ *   USING  (patient_id = auth.uid() AND status = 'upcoming')
+ *   WITH CHECK (patient_id = auth.uid() AND status = 'cancelled')
  */
 export async function cancelAppointmentAction(
   id: string
@@ -81,20 +99,54 @@ export async function cancelAppointmentAction(
   if (!id) return { error: "Missing appointment ID" };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase
+  // ── 1. Read the appointment first (need doctor_id + meta for notification) ──
+  const { data: appt } = await supabase
     .from("appointments")
-    .update({
-      status:     "cancelled",
-      updated_at: new Date().toISOString(),
-    })
+    .select("doctor_id, appointment_date, start_time, type")
     .eq("id",         id)
     .eq("patient_id", user.id)
-    .eq("status",     "upcoming");  // guard: only upcoming can be cancelled
+    .eq("status",     "upcoming")
+    .maybeSingle();
 
-  return { error: error?.message ?? null };
+  if (!appt) {
+    return { error: "Appointment not found or already cancelled." };
+  }
+
+  // ── 2. Cancel ──
+  const { error } = await supabase
+    .from("appointments")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id",         id)
+    .eq("patient_id", user.id)
+    .eq("status",     "upcoming");  // second guard matches RLS
+
+  if (error) return { error: error.message };
+
+  // ── 3. Notify doctor (non-blocking) ──
+  try {
+    const { data: patient } = await supabase
+      .from("users")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    const patientName = patient?.full_name ?? "A patient";
+    const dateLabel   = fmtDate(appt.appointment_date);
+    const timeLabel   = fmtTime(appt.start_time);
+
+    await sendNotification({
+      user_id: appt.doctor_id,
+      type:    "appointment_cancelled",
+      title:   "Appointment Cancelled",
+      body:    `${patientName} cancelled their appointment on ${dateLabel} at ${timeLabel}.`,
+      link:    "/doctor/appointments",
+    });
+  } catch {
+    // Never fail the cancellation because of a notification error
+  }
+
+  return { error: null };
 }

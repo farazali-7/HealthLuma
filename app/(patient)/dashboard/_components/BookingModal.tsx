@@ -26,11 +26,6 @@ function formatSlot(time: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
-function addMinutes(time: string, mins: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + m + mins;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
 
 function initials(name: string): string {
   return name
@@ -130,12 +125,10 @@ export function BookingModal({ open, onClose }: Props) {
   function handleBook() {
     setError(null);
     startTransition(async () => {
-      const slotDuration = 30; // matches default slot_duration_mins
       const res = await bookAppointmentAction({
         doctor_id:        doctorId,
         appointment_date: date,
         start_time:       selectedSlot,
-        end_time:         addMinutes(selectedSlot, slotDuration),
         type:             apptType,
         notes:            notes.trim() || undefined,
       });
