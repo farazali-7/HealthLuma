@@ -62,12 +62,12 @@ const WEEKLY_LOAD = [
   { day: "Fri", appts: 5 },
 ];
 
-const KPI_STATS = [
-  { label: "Avg patients/day",  value: "7.4",    change: "+0.8",   up: true  as true,  icon: <Users className="size-3.5" />    },
-  { label: "Avg consult time",  value: "18 min", change: "−2 min", up: true  as true,  icon: <Clock className="size-3.5" />    },
-  { label: "No-show rate",      value: "3.2%",   change: "−0.5%",  up: true  as true,  icon: <Calendar className="size-3.5" /> },
-  { label: "Patient retention", value: "84%",    change: "+3%",    up: true  as true,  icon: <Repeat className="size-3.5" />   },
-  { label: "Avg rating",        value: "4.9",    change: "stable", up: null  as null,  icon: <Activity className="size-3.5" /> },
+const KPI_STATS: { label: string; value: string; change: string; up: boolean | null; icon: React.ReactNode }[] = [
+  { label: "Avg patients/day",  value: "7.4",    change: "+0.8",   up: true,  icon: <Users className="size-3.5" />    },
+  { label: "Avg consult time",  value: "18 min", change: "−2 min", up: true,  icon: <Clock className="size-3.5" />    },
+  { label: "No-show rate",      value: "3.2%",   change: "−0.5%",  up: true,  icon: <Calendar className="size-3.5" /> },
+  { label: "Patient retention", value: "84%",    change: "+3%",    up: true,  icon: <Repeat className="size-3.5" />   },
+  { label: "Avg rating",        value: "4.9",    change: "stable", up: null,  icon: <Activity className="size-3.5" /> },
 ];
 
 // ─── Tooltip helpers ────────────────────────────────────────────
