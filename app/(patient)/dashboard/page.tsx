@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { type ReactNode } from "react";
 import {
@@ -9,12 +9,15 @@ import {
   FileText,
   ChevronRight,
   TrendingDown,
+  TrendingUp,
+  Minus,
   Clock,
   CheckCircle2,
   Circle,
   Plus,
   X,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -29,10 +32,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUser } from "./context";
 import { BookingModal } from "./_components/BookingModal";
+import {
+  getDashboardDataAction,
+  type DashboardAppointment,
+  type DashboardData,
+} from "./dashboard-data";
 
 // ─── Types ────────────────────────────────────────────────────
 
 interface UpcomingAppt {
+  id: string;
   doctor: string;
   specialty: string;
   date: string;
@@ -43,58 +52,68 @@ interface UpcomingAppt {
   location: string;
 }
 
-// ─── Health Data ──────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────
 
-const vitalsData = [
-  { month: "Sep", systolic: 128, diastolic: 82 },
-  { month: "Oct", systolic: 124, diastolic: 80 },
-  { month: "Nov", systolic: 122, diastolic: 78 },
-  { month: "Dec", systolic: 126, diastolic: 82 },
-  { month: "Jan", systolic: 120, diastolic: 76 },
-  { month: "Feb", systolic: 118, diastolic: 75 },
-];
+const TYPE_LABELS: Record<string, string> = {
+  "consultation":         "New Consultation",
+  "follow-up":            "Follow-up",
+  "checkup":              "Annual Checkup",
+  "prescription-review":  "Prescription Review",
+};
 
-const upcomingAppointments: UpcomingAppt[] = [
-  {
-    doctor: "Dr. Jack",
-    specialty: "Family Medicine",
-    date: "Feb 27",
-    time: "10:30 AM",
-    type: "Follow-up",
-    avatar: "DJ",
-    daysOut: 2,
-    location: "Suite 204, Medical Arts Building",
-  },
-  {
-    doctor: "Dr. Jack",
-    specialty: "Family Medicine",
-    date: "Mar 3",
-    time: "2:00 PM",
-    type: "Consultation",
-    avatar: "DJ",
-    daysOut: 6,
-    location: "Suite 204, Medical Arts Building",
-  },
-  {
-    doctor: "Dr. Jack",
-    specialty: "Family Medicine",
-    date: "Apr 1",
-    time: "11:00 AM",
-    type: "Annual Checkup",
-    avatar: "DJ",
-    daysOut: 35,
-    location: "Suite 204, Medical Arts Building",
-  },
-];
+function fmtShortDate(dateStr: string): string {
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
 
-const medications = [
-  { name: "Vitamin D3",          dose: "2000 IU",  frequency: "Once daily · morning", taken: true  },
-  { name: "Omega-3 Fatty Acids", dose: "1000 mg",  frequency: "Once daily · evening", taken: true  },
-  { name: "Metformin",           dose: "500 mg",   frequency: "Twice daily",           taken: false },
-];
+function fmtTime(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
 
-const takenCount = medications.filter((m) => m.taken).length;
-const takenPct   = Math.round((takenCount / medications.length) * 100);
+function computeDaysOut(dateStr: string): number {
+  const appt = new Date(`${dateStr}T12:00:00Z`).getTime();
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  return Math.ceil((appt - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter((w) => !["Dr.", "Dr", "MD", "PhD", "DO"].includes(w))
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase() || "DR";
+}
+
+function daysSince(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(`${dateStr}T12:00:00Z`).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days < 1) return "Today";
+  if (days < 30) return `${days}d`;
+  if (days < 365) return `${Math.floor(days / 30)}mo`;
+  return `${Math.floor(days / 365)}yr`;
+}
+
+function toUpcomingAppt(a: DashboardAppointment): UpcomingAppt {
+  return {
+    id: a.id,
+    doctor: a.doctor_name,
+    specialty: a.doctor_specialty ?? "General Practice",
+    date: fmtShortDate(a.appointment_date),
+    time: fmtTime(a.start_time),
+    type: TYPE_LABELS[a.type] ?? a.type,
+    avatar: getInitials(a.doctor_name),
+    daysOut: computeDaysOut(a.appointment_date),
+    location: a.location,
+  };
+}
 
 // ─── Appointment Detail Slide-over ────────────────────────────
 
@@ -134,8 +153,6 @@ function AppointmentPanel({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-
-          {/* Status + type */}
           <div className="rounded-xl border border-border bg-muted/20 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
@@ -154,7 +171,6 @@ function AppointmentPanel({
             </p>
           </div>
 
-          {/* Details */}
           <div>
             <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Details
@@ -197,12 +213,41 @@ function AppointmentPanel({
   );
 }
 
+// ─── Loading Skeleton ─────────────────────────────────────────
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8 animate-pulse">
+      <div className="h-8 w-56 rounded-xl bg-muted/40" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-5 h-64 rounded-2xl bg-muted/30" />
+        <div className="lg:col-span-7 space-y-3">
+          <div className="h-20 rounded-2xl bg-muted/30" />
+          <div className="h-40 rounded-2xl bg-muted/30" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-7 h-64 rounded-2xl bg-muted/30" />
+        <div className="lg:col-span-5 h-64 rounded-2xl bg-muted/30" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const user = useUser();
   const [selectedAppt, setSelectedAppt] = useState<UpcomingAppt | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [dashData, setDashData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDashboardDataAction()
+      .then(setDashData)
+      .finally(() => setLoading(false));
+  }, []);
 
   const displayName =
     user.user_metadata?.full_name ||
@@ -221,11 +266,42 @@ export default function DashboardPage() {
     day: "numeric",
   });
 
-  const nextAppt = upcomingAppointments[0];
+  if (loading) return <DashboardSkeleton />;
+
+  // Derive display values from fetched data
+  const upcomingAppts = (dashData?.upcomingAppointments ?? []).map(toUpcomingAppt);
+  const nextAppt      = upcomingAppts[0] ?? null;
+  const vitalsData    = dashData?.vitals ?? [];
+  const medications   = dashData?.prescriptions ?? [];
+  const stats         = dashData?.stats ?? { prescriptionCount: 0, lastVisitDate: null, documentCount: 0 };
+
+  const takenCount = medications.filter((m) => m.status === "active").length;
+  const takenPct   = medications.length > 0
+    ? Math.round((takenCount / medications.length) * 100)
+    : 0;
+
+  // Vitals summary for footer stats
+  const latestVital = vitalsData[vitalsData.length - 1];
+  const earliestVital = vitalsData[0];
+  const trend: "improving" | "worsening" | "stable" = (() => {
+    if (!latestVital || !earliestVital || vitalsData.length < 2) return "stable";
+    const delta = latestVital.systolic - earliestVital.systolic;
+    if (delta < -2) return "improving";
+    if (delta > 2) return "worsening";
+    return "stable";
+  })();
 
   return (
     <>
-      <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => {
+          setBookingOpen(false);
+          // Refresh data after booking
+          getDashboardDataAction().then(setDashData);
+        }}
+      />
+
       <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
 
         {/* ── 1. Header ────────────────────────────── */}
@@ -266,59 +342,70 @@ export default function DashboardPage() {
                 Next Appointment
               </p>
 
-              <div className="flex items-start gap-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-[13px] font-bold text-primary">
-                  {nextAppt.avatar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold text-foreground truncate">{nextAppt.doctor}</p>
-                  <p className="mt-0.5 text-[12px] text-muted-foreground">
-                    {nextAppt.specialty} · {nextAppt.type}
-                  </p>
-                </div>
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-vault-positive-light px-2.5 py-1 text-[10px] font-semibold text-vault-positive">
-                  <span className="size-1.5 rounded-full bg-vault-positive" />
-                  In {nextAppt.daysOut} days
-                </span>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2.5">
-                <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
-                  <Calendar className="size-3.5 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Date</p>
-                    <p className="text-sm font-semibold text-foreground">{nextAppt.date}</p>
+              {nextAppt ? (
+                <>
+                  <div className="flex items-start gap-4">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-[13px] font-bold text-primary">
+                      {nextAppt.avatar}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-semibold text-foreground truncate">{nextAppt.doctor}</p>
+                      <p className="mt-0.5 text-[12px] text-muted-foreground">
+                        {nextAppt.specialty} · {nextAppt.type}
+                      </p>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-vault-positive-light px-2.5 py-1 text-[10px] font-semibold text-vault-positive">
+                      <span className="size-1.5 rounded-full bg-vault-positive" />
+                      In {nextAppt.daysOut} {nextAppt.daysOut === 1 ? "day" : "days"}
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
-                  <Clock className="size-3.5 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Time</p>
-                    <p className="text-sm font-semibold text-foreground">{nextAppt.time}</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-auto pt-4 flex gap-2.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 flex-1 text-xs"
-                  onClick={() => setSelectedAppt(nextAppt)}
-                >
-                  View Details
-                </Button>
-                <Button size="sm" className="h-8 flex-1 gap-1 text-xs" asChild>
-                  <Link href="/dashboard/appointments">
-                    <Plus className="size-3" />
-                    Book New
-                  </Link>
-                </Button>
-              </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <Calendar className="size-3.5 shrink-0 text-muted-foreground" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Date</p>
+                        <p className="text-sm font-semibold text-foreground">{nextAppt.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Time</p>
+                        <p className="text-sm font-semibold text-foreground">{nextAppt.time}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-4 flex gap-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 flex-1 text-xs"
+                      onClick={() => setSelectedAppt(nextAppt)}
+                    >
+                      View Details
+                    </Button>
+                    <Button size="sm" className="h-8 flex-1 gap-1 text-xs" onClick={() => setBookingOpen(true)}>
+                      <Plus className="size-3" />
+                      Book New
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-4">
+                  <Calendar className="size-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No upcoming appointments</p>
+                  <Button size="sm" className="gap-1.5 text-xs" onClick={() => setBookingOpen(true)}>
+                    <Plus className="size-3.5" />
+                    Book Now
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right — Stats + Upcoming */}
+          {/* Right — Stats + Upcoming List */}
           <div className="lg:col-span-7 flex flex-col gap-3">
             <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <Link href="/dashboard/records" className="group flex flex-col gap-1 px-4 py-4 transition-colors hover:bg-muted/20">
@@ -328,8 +415,12 @@ export default function DashboardPage() {
                     <Pill className="size-3" />
                   </span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>3</p>
-                <p className="text-[11px] text-muted-foreground">All current</p>
+                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+                  {stats.prescriptionCount || "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {stats.prescriptionCount > 0 ? "All current" : "None active"}
+                </p>
               </Link>
 
               <div className="flex flex-col gap-1 px-4 py-4">
@@ -339,8 +430,12 @@ export default function DashboardPage() {
                     <Clock className="size-3" />
                   </span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>14d</p>
-                <p className="text-[11px] text-muted-foreground">Feb 10, 2026</p>
+                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+                  {daysSince(stats.lastVisitDate)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {stats.lastVisitDate ? fmtShortDate(stats.lastVisitDate) : "No visits yet"}
+                </p>
               </div>
 
               <Link href="/dashboard/records" className="group flex flex-col gap-1 px-4 py-4 transition-colors hover:bg-muted/20">
@@ -350,8 +445,12 @@ export default function DashboardPage() {
                     <FileText className="size-3" />
                   </span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>6</p>
-                <p className="text-[11px] text-muted-foreground">Most recent: Feb 10</p>
+                <p className="text-2xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
+                  {stats.documentCount || "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {stats.documentCount > 0 ? "On file" : "None uploaded"}
+                </p>
               </Link>
             </div>
 
@@ -366,33 +465,41 @@ export default function DashboardPage() {
                   <Link href="/dashboard/appointments">View all <ChevronRight className="size-3" /></Link>
                 </Button>
               </div>
-              <div className="divide-y divide-border/50">
-                {upcomingAppointments.map((appt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedAppt(appt)}
-                    className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/20"
-                  >
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
-                      <span className="text-[10px] font-bold text-primary">{appt.avatar}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">{appt.type}</p>
-                      <p className="text-[11px] text-muted-foreground">{appt.date} · {appt.time}</p>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      appt.daysOut <= 3
-                        ? "bg-vault-positive-light text-vault-positive"
-                        : appt.daysOut <= 14
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted/60 text-muted-foreground"
-                    }`}>
-                      {appt.daysOut}d
-                    </span>
-                    <ChevronRight className="size-3 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                ))}
-              </div>
+
+              {upcomingAppts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                  <Calendar className="size-6 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No upcoming appointments</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {upcomingAppts.map((appt) => (
+                    <button
+                      key={appt.id}
+                      onClick={() => setSelectedAppt(appt)}
+                      className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/20"
+                    >
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
+                        <span className="text-[10px] font-bold text-primary">{appt.avatar}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">{appt.type}</p>
+                        <p className="text-[11px] text-muted-foreground">{appt.date} · {appt.time}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        appt.daysOut <= 3
+                          ? "bg-vault-positive-light text-vault-positive"
+                          : appt.daysOut <= 14
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted/60 text-muted-foreground"
+                      }`}>
+                        {appt.daysOut}d
+                      </span>
+                      <ChevronRight className="size-3 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -424,52 +531,84 @@ export default function DashboardPage() {
             </div>
 
             <div className="px-2 pb-4 pt-3">
-              <div className="h-52 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={vitalsData} margin={{ top: 8, right: 20, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      domain={[60, 145]}
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickCount={5}
-                    />
-                    <RechartsTooltip content={<VitalsTooltip />} />
-                    <ReferenceLine y={120} stroke="var(--vault-warning)" strokeDasharray="4 3" strokeWidth={1} />
-                    <Line
-                      type="monotone" dataKey="systolic" stroke="var(--vault-chart-1)" strokeWidth={2}
-                      dot={{ r: 3, fill: "var(--vault-chart-1)", strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: "var(--vault-chart-1)", stroke: "white", strokeWidth: 2 }}
-                    />
-                    <Line
-                      type="monotone" dataKey="diastolic" stroke="var(--vault-chart-3)" strokeWidth={2}
-                      dot={{ r: 3, fill: "var(--vault-chart-3)", strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: "var(--vault-chart-3)", stroke: "white", strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {vitalsData.length === 0 ? (
+                <div className="flex h-52 flex-col items-center justify-center gap-2 text-center">
+                  <AlertCircle className="size-6 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No vitals recorded yet</p>
+                  <p className="text-[11px] text-muted-foreground/70">Your doctor records these at each visit</p>
+                </div>
+              ) : (
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={vitalsData} margin={{ top: 8, right: 20, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        domain={[60, 145]}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickCount={5}
+                      />
+                      <RechartsTooltip content={<VitalsTooltip />} />
+                      <ReferenceLine y={120} stroke="var(--vault-warning)" strokeDasharray="4 3" strokeWidth={1} />
+                      <Line
+                        type="monotone" dataKey="systolic" stroke="var(--vault-chart-1)" strokeWidth={2}
+                        dot={{ r: 3, fill: "var(--vault-chart-1)", strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: "var(--vault-chart-1)", stroke: "white", strokeWidth: 2 }}
+                      />
+                      <Line
+                        type="monotone" dataKey="diastolic" stroke="var(--vault-chart-3)" strokeWidth={2}
+                        dot={{ r: 3, fill: "var(--vault-chart-3)", strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: "var(--vault-chart-3)", stroke: "white", strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
 
-              <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/60 px-3 pt-3">
-                <MiniStat label="Latest reading" value="118/75" />
-                <MiniStat label="6-month average" value="123/79" />
-                <MiniStat
-                  label="Trend"
-                  value={
-                    <span className="flex items-center gap-1 text-vault-positive">
-                      <TrendingDown className="size-3" />
-                      Improving
-                    </span>
-                  }
-                />
-              </div>
+              {vitalsData.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/60 px-3 pt-3">
+                  <MiniStat
+                    label="Latest reading"
+                    value={latestVital ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"}
+                  />
+                  <MiniStat
+                    label="6-month avg"
+                    value={
+                      vitalsData.length > 0
+                        ? `${Math.round(vitalsData.reduce((s, v) => s + v.systolic, 0) / vitalsData.length)}/${Math.round(vitalsData.reduce((s, v) => s + v.diastolic, 0) / vitalsData.length)}`
+                        : "—"
+                    }
+                  />
+                  <MiniStat
+                    label="Trend"
+                    value={
+                      trend === "improving" ? (
+                        <span className="flex items-center gap-1 text-vault-positive">
+                          <TrendingDown className="size-3" />
+                          Improving
+                        </span>
+                      ) : trend === "worsening" ? (
+                        <span className="flex items-center gap-1 text-vault-negative">
+                          <TrendingUp className="size-3" />
+                          Rising
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Minus className="size-3" />
+                          Stable
+                        </span>
+                      )
+                    }
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -477,45 +616,67 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-5">
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Today</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Active</p>
                 <h2 className="mt-0.5 text-sm font-semibold text-foreground">Medications</h2>
               </div>
-              <span className="text-[11px] text-muted-foreground">{takenCount} of {medications.length} taken</span>
+              <span className="text-[11px] text-muted-foreground">
+                {medications.length > 0 ? `${takenCount} of ${medications.length} active` : "None prescribed"}
+              </span>
             </div>
 
-            <div className="divide-y divide-border/50">
-              {medications.map((med, i) => (
-                <div key={i} className="flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-muted/20">
-                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
-                    med.taken ? "bg-vault-positive-light" : "bg-muted/40"
-                  }`}>
-                    {med.taken
-                      ? <CheckCircle2 className="size-4 text-vault-positive" />
-                      : <Circle className="size-4 text-muted-foreground/50" />
-                    }
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{med.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{med.dose} · {med.frequency}</p>
-                  </div>
-                  {med.taken && (
-                    <span className="shrink-0 text-[10px] font-semibold text-vault-positive">Taken</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-border/60 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/40">
-                  <div
-                    className="h-full rounded-full bg-vault-positive transition-all duration-500"
-                    style={{ width: `${takenPct}%` }}
-                  />
-                </div>
-                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{takenPct}% today</span>
+            {medications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 px-5 py-10 text-center">
+                <Pill className="size-6 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No active prescriptions</p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="divide-y divide-border/50">
+                  {medications.map((med, i) => {
+                    const isActive = med.status === "active";
+                    const isRefillDue = med.status === "refill-due";
+                    return (
+                      <div key={i} className="flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-muted/20">
+                        <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+                          isActive      ? "bg-vault-positive-light" :
+                          isRefillDue   ? "bg-vault-warning-light"  :
+                          "bg-muted/40"
+                        }`}>
+                          {isActive
+                            ? <CheckCircle2 className="size-4 text-vault-positive" />
+                            : isRefillDue
+                            ? <AlertCircle className="size-4 text-vault-warning" />
+                            : <Circle className="size-4 text-muted-foreground/50" />
+                          }
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">{med.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{med.dose} · {med.frequency}</p>
+                        </div>
+                        {isActive && (
+                          <span className="shrink-0 text-[10px] font-semibold text-vault-positive">Active</span>
+                        )}
+                        {isRefillDue && (
+                          <span className="shrink-0 text-[10px] font-semibold text-vault-warning">Refill due</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="border-t border-border/60 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/40">
+                      <div
+                        className="h-full rounded-full bg-vault-positive transition-all duration-500"
+                        style={{ width: `${takenPct}%` }}
+                      />
+                    </div>
+                    <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{takenPct}% active</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
