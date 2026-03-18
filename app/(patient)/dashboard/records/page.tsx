@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import {
   FileText,
   Pill,
@@ -8,45 +8,20 @@ import {
   Download,
   Eye,
   Search,
+  RefreshCw,
+  AlertCircle,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getPatientPrescriptionsAction,
+  type PatientPrescription,
+  type PatientRxStatus,
+} from "./actions";
 
-// ─── Data ──────────────────────────────────────────────────────
-
-const PRESCRIPTIONS = [
-  {
-    name: "Vitamin D3",
-    dose: "2000 IU",
-    frequency: "Once daily, morning",
-    prescribed: "Feb 10, 2026",
-    refills: 5,
-    status: "active" as const,
-  },
-  {
-    name: "Omega-3 Fatty Acids",
-    dose: "1000 mg",
-    frequency: "Once daily, evening",
-    prescribed: "Feb 10, 2026",
-    refills: 5,
-    status: "active" as const,
-  },
-  {
-    name: "Metformin",
-    dose: "500 mg",
-    frequency: "Twice daily with meals",
-    prescribed: "Jan 5, 2026",
-    refills: 2,
-    status: "active" as const,
-  },
-  {
-    name: "Amoxicillin",
-    dose: "500 mg",
-    frequency: "Three times daily",
-    prescribed: "Oct 12, 2025",
-    refills: 0,
-    status: "completed" as const,
-  },
-];
+// ─── Mock documents (no storage yet) ────────────────────────────
 
 const DOCUMENTS = [
   {
@@ -75,26 +50,123 @@ const DOCUMENTS = [
   },
 ];
 
+// ─── Status meta ─────────────────────────────────────────────────
+
+const STATUS_META: Record<
+  PatientRxStatus,
+  { label: string; icon: React.ReactNode; className: string }
+> = {
+  active: {
+    label: "Active",
+    icon: <CheckCircle2 className="size-3" />,
+    className: "bg-[color:var(--vault-positive)]/10 text-[color:var(--vault-positive)]",
+  },
+  "refill-due": {
+    label: "Refill Due",
+    icon: <Clock className="size-3" />,
+    className: "bg-[color:var(--vault-warning)]/10 text-[color:var(--vault-warning)]",
+  },
+  completed: {
+    label: "Completed",
+    icon: <CheckCircle2 className="size-3" />,
+    className: "bg-muted/60 text-muted-foreground",
+  },
+  discontinued: {
+    label: "Discontinued",
+    icon: <XCircle className="size-3" />,
+    className: "bg-[color:var(--vault-negative)]/10 text-[color:var(--vault-negative)]",
+  },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────
+
+function formatDate(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function isActive(status: PatientRxStatus) {
+  return status === "active" || status === "refill-due";
+}
+
+// ─── Skeleton ────────────────────────────────────────────────────
+
+function RxSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-border bg-card p-5 shadow-sm animate-pulse"
+        >
+          <div className="flex gap-4">
+            <div className="size-11 shrink-0 rounded-xl bg-muted/50" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/3 rounded bg-muted/50" />
+              <div className="h-3 w-1/2 rounded bg-muted/40" />
+              <div className="h-3 w-2/5 rounded bg-muted/30" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Types ───────────────────────────────────────────────────────
+
 type Tab = "prescriptions" | "documents";
 
-// ─── Page ──────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────
 
 export default function RecordsPage() {
-  const [tab, setTab]   = useState<Tab>("prescriptions");
+  const [tab, setTab]     = useState<Tab>("prescriptions");
   const [search, setSearch] = useState("");
+  const [rxList, setRxList] = useState<PatientPrescription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const load = () => {
+    setLoading(true);
+    setFetchError(null);
+    startTransition(async () => {
+      try {
+        const data = await getPatientPrescriptionsAction();
+        setRxList(data);
+      } catch {
+        setFetchError("Could not load prescriptions. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    });
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Derived ──
+  const activePrescriptions = useMemo(
+    () => rxList.filter((r) => isActive(r.status)),
+    [rxList]
+  );
 
   const filteredRx = useMemo(
-    () => PRESCRIPTIONS.filter((r) =>
-      r.name.toLowerCase().includes(search.toLowerCase())
-    ),
-    [search]
+    () =>
+      rxList.filter((r) =>
+        r.medication.toLowerCase().includes(search.toLowerCase()) ||
+        (r.condition ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.doctor?.full_name ?? "").toLowerCase().includes(search.toLowerCase())
+      ),
+    [rxList, search]
   );
 
   const filteredDocs = useMemo(
-    () => DOCUMENTS.filter((d) =>
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.type.toLowerCase().includes(search.toLowerCase())
-    ),
+    () =>
+      DOCUMENTS.filter(
+        (d) =>
+          d.name.toLowerCase().includes(search.toLowerCase()) ||
+          d.type.toLowerCase().includes(search.toLowerCase())
+      ),
     [search]
   );
 
@@ -113,7 +185,7 @@ export default function RecordsPage() {
           <span className="flex items-center gap-1.5">
             <Pill className="size-3.5 text-primary" />
             <strong className="font-semibold text-foreground">
-              {PRESCRIPTIONS.filter((r) => r.status === "active").length}
+              {activePrescriptions.length}
             </strong>{" "}
             active prescriptions
           </span>
@@ -142,7 +214,7 @@ export default function RecordsPage() {
       <div className="flex w-fit gap-1 rounded-xl border border-border bg-muted/30 p-1">
         {(
           [
-            { id: "prescriptions", label: "Prescriptions", icon: <Pill className="size-3.5" />     },
+            { id: "prescriptions", label: "Prescriptions", icon: <Pill className="size-3.5" /> },
             { id: "documents",     label: "Documents",     icon: <FileText className="size-3.5" /> },
           ] as { id: Tab; label: string; icon: React.ReactNode }[]
         ).map((t) => (
@@ -164,32 +236,59 @@ export default function RecordsPage() {
       {/* ── Prescriptions ── */}
       {tab === "prescriptions" && (
         <div className="space-y-5">
-          {filteredRx.length === 0 && (
+          {loading && <RxSkeleton />}
+
+          {!loading && fetchError && (
+            <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-6 py-5">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <AlertCircle className="size-4 shrink-0 text-[color:var(--vault-negative)]" />
+                {fetchError}
+              </div>
+              <Button size="sm" variant="outline" onClick={load} className="h-8 gap-1.5 text-xs">
+                <RefreshCw className="size-3" />
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {!loading && !fetchError && filteredRx.length === 0 && (
             <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center">
-              <p className="text-sm text-muted-foreground">No prescriptions match your search.</p>
+              <p className="text-sm text-muted-foreground">
+                {search ? "No prescriptions match your search." : "No prescriptions on file."}
+              </p>
             </div>
           )}
-          {/* Active group */}
-          {filteredRx.filter((r) => r.status === "active").length > 0 && (
-            <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
-                Active
-              </p>
-              {filteredRx.filter((r) => r.status === "active").map((rx, i) => (
-                <PrescriptionCard key={i} rx={rx} />
-              ))}
-            </div>
-          )}
-          {/* Completed group */}
-          {filteredRx.filter((r) => r.status !== "active").length > 0 && (
-            <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
-                Past
-              </p>
-              {filteredRx.filter((r) => r.status !== "active").map((rx, i) => (
-                <PrescriptionCard key={i} rx={rx} />
-              ))}
-            </div>
+
+          {!loading && !fetchError && (
+            <>
+              {/* Active / Refill-due group */}
+              {filteredRx.filter((r) => isActive(r.status)).length > 0 && (
+                <div className="space-y-3">
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Active
+                  </p>
+                  {filteredRx
+                    .filter((r) => isActive(r.status))
+                    .map((rx) => (
+                      <PrescriptionCard key={rx.id} rx={rx} />
+                    ))}
+                </div>
+              )}
+
+              {/* Past / Discontinued group */}
+              {filteredRx.filter((r) => !isActive(r.status)).length > 0 && (
+                <div className="space-y-3">
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Past
+                  </p>
+                  {filteredRx
+                    .filter((r) => !isActive(r.status))
+                    .map((rx) => (
+                      <PrescriptionCard key={rx.id} rx={rx} />
+                    ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -245,44 +344,72 @@ export default function RecordsPage() {
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────────
+// ─── PrescriptionCard ────────────────────────────────────────────
 
-type Prescription = (typeof PRESCRIPTIONS)[number];
+function PrescriptionCard({ rx }: { rx: PatientPrescription }) {
+  const meta   = STATUS_META[rx.status];
+  const active = isActive(rx.status);
+  const refillsLeft = rx.refills_total - rx.refills_used;
 
-function PrescriptionCard({ rx }: { rx: Prescription }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        {/* Icon */}
         <div
           className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
-            rx.status === "active" ? "bg-primary/10" : "bg-muted/40"
+            active ? "bg-primary/10" : "bg-muted/40"
           }`}
         >
           <Pill
-            className={`size-5 ${
-              rx.status === "active"
-                ? "text-primary"
-                : "text-muted-foreground/50"
-            }`}
+            className={`size-5 ${active ? "text-primary" : "text-muted-foreground/50"}`}
           />
         </div>
+
+        {/* Body */}
         <div className="flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">{rx.name}</h3>
-            <span className="text-xs font-medium text-muted-foreground">
-              {rx.dose}
+            <h3 className="text-sm font-semibold text-foreground">{rx.medication}</h3>
+            <span className="text-xs font-medium text-muted-foreground">{rx.dose}</span>
+            {/* Status badge */}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.className}`}
+            >
+              {meta.icon}
+              {meta.label}
             </span>
           </div>
+
           <p className="text-[12px] text-muted-foreground">{rx.frequency}</p>
+
+          {rx.condition && (
+            <p className="text-[11px] text-muted-foreground">For: {rx.condition}</p>
+          )}
+
           <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-            <span>Prescribed {rx.prescribed}</span>
-            <span>&middot; Dr. Jack</span>
-            {rx.status === "active" && (
-              <span>&middot; {rx.refills} refills remaining</span>
+            <span>Prescribed {formatDate(rx.prescribed_at)}</span>
+            {rx.doctor && (
+              <span>&middot; Dr. {rx.doctor.full_name.split(" ").slice(-1)[0]}</span>
+            )}
+            {active && (
+              <span>
+                &middot;{" "}
+                {refillsLeft > 0
+                  ? `${refillsLeft} refill${refillsLeft === 1 ? "" : "s"} remaining`
+                  : "No refills remaining"}
+              </span>
+            )}
+            {rx.expires_at && active && (
+              <span>&middot; Expires {formatDate(rx.expires_at)}</span>
             )}
           </div>
+
+          {rx.notes && (
+            <p className="mt-1 text-[11px] italic text-muted-foreground/80">{rx.notes}</p>
+          )}
         </div>
-        {rx.status === "active" && (
+
+        {/* Refill CTA — only when active and refills remain */}
+        {active && refillsLeft > 0 && (
           <Button size="sm" variant="outline" className="h-8 shrink-0 gap-1.5 text-xs">
             Request Refill
           </Button>
