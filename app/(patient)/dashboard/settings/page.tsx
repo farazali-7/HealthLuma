@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   User,
@@ -15,10 +15,23 @@ import {
   Smartphone,
   Mail,
   MessageSquare,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "../context";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getSettingsDataAction,
+  updatePersonalInfoAction,
+  updateMedicalProfileAction,
+  updateEmergencyContactAction,
+  updateAvatarUrlAction,
+  updateNotificationPreferencesAction,
+  updatePasswordAction,
+  signOutAction,
+  type SettingsProfile,
+} from "./actions";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -29,10 +42,18 @@ type Tab = "profile" | "notifications" | "security";
 export default function SettingsPage() {
   const user = useUser();
   const [tab, setTab] = useState<Tab>("profile");
+  const [profile, setProfile] = useState<SettingsProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [, startTransition] = useTransition();
 
-  const displayName =
-    user.user_metadata?.full_name || user.user_metadata?.name || "";
   const email = user.email ?? "";
+
+  // Derive initials from loaded profile or auth metadata
+  const displayName =
+    profile?.full_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    "";
 
   const initials = displayName
     ? displayName
@@ -43,12 +64,25 @@ export default function SettingsPage() {
         .toUpperCase()
     : email.slice(0, 2).toUpperCase() || "U";
 
+  const avatarUrl = profile?.avatar_url ?? null;
+
+  useEffect(() => {
+    startTransition(async () => {
+      const data = await getSettingsDataAction();
+      setProfile(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const refreshProfile = async () => {
+    const data = await getSettingsDataAction();
+    setProfile(data);
+  };
+
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
+    await signOutAction();
     router.refresh();
   };
 
@@ -76,12 +110,24 @@ export default function SettingsPage() {
 
             {/* User identity strip */}
             <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <span className="text-xs font-bold text-primary">{initials}</span>
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="size-9 shrink-0 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <span className="text-xs font-bold text-primary">{initials}</span>
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-foreground">
-                  {displayName || "Your Name"}
+                  {loading ? (
+                    <span className="inline-block h-3.5 w-24 animate-pulse rounded bg-muted" />
+                  ) : (
+                    displayName || "Your Name"
+                  )}
                 </p>
                 <p className="truncate text-[11px] text-muted-foreground">{email}</p>
               </div>
@@ -132,9 +178,21 @@ export default function SettingsPage() {
 
         {/* ── Content Panel ── */}
         <div className="lg:col-span-9">
-          {tab === "profile"       && <ProfileTab name={displayName} email={email} initials={initials} />}
-          {tab === "notifications" && <NotificationsTab />}
-          {tab === "security"      && <SecurityTab />}
+          {tab === "profile" && (
+            <ProfileTab
+              profile={profile}
+              loading={loading}
+              email={email}
+              initials={initials}
+              onSaved={refreshProfile}
+            />
+          )}
+          {tab === "notifications" && (
+            <NotificationsTab
+              savedPrefs={profile?.notification_preferences ?? null}
+            />
+          )}
+          {tab === "security" && <SecurityTab />}
         </div>
       </div>
     </div>
@@ -145,12 +203,14 @@ export default function SettingsPage() {
 
 function CardActions({
   editing,
+  saving,
   saved,
   onEdit,
   onSave,
   onCancel,
 }: {
   editing: boolean;
+  saving?: boolean;
   saved: boolean;
   onEdit: () => void;
   onSave: () => void;
@@ -170,11 +230,14 @@ function CardActions({
         size="sm"
         className="h-7 text-xs text-muted-foreground"
         onClick={onCancel}
+        disabled={saving}
       >
         Cancel
       </Button>
-      <Button size="sm" className="h-7 min-w-14 gap-1.5 text-xs" onClick={onSave}>
-        {saved ? (
+      <Button size="sm" className="h-7 min-w-14 gap-1.5 text-xs" onClick={onSave} disabled={saving}>
+        {saving ? (
+          <Loader2 className="size-3 animate-spin" />
+        ) : saved ? (
           <>
             <Check className="size-3" />
             Saved
@@ -205,22 +268,54 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CardError({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-vault-negative/20 bg-vault-negative-light px-4 py-2.5 text-xs text-vault-negative">
+      <AlertCircle className="size-4 shrink-0" />
+      {message}
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-0.5">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center justify-between rounded-lg px-3 py-2.5 odd:bg-muted/20">
+          <span className="h-3 w-20 animate-pulse rounded bg-muted" />
+          <span className="h-3 w-32 animate-pulse rounded bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Profile Tab ───────────────────────────────────────────────
 
 function ProfileTab({
-  name,
+  profile,
+  loading,
   email,
   initials,
+  onSaved,
 }: {
-  name: string;
+  profile: SettingsProfile | null;
+  loading: boolean;
   email: string;
   initials: string;
+  onSaved: () => Promise<void>;
 }) {
   return (
     <div className="space-y-4">
-      <PersonalInfoCard name={name} email={email} initials={initials} />
-      <MedicalProfileCard />
-      <EmergencyContactCard />
+      <PersonalInfoCard
+        profile={profile}
+        loading={loading}
+        email={email}
+        initials={initials}
+        onSaved={onSaved}
+      />
+      <MedicalProfileCard profile={profile} loading={loading} onSaved={onSaved} />
+      <EmergencyContactCard profile={profile} loading={loading} onSaved={onSaved} />
     </div>
   );
 }
@@ -228,32 +323,99 @@ function ProfileTab({
 // ── Personal Information ─────────────────────────────────────
 
 function PersonalInfoCard({
-  name,
+  profile,
+  loading,
   email,
   initials,
+  onSaved,
 }: {
-  name: string;
+  profile: SettingsProfile | null;
+  loading: boolean;
   email: string;
   initials: string;
+  onSaved: () => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const [values, setValues]   = useState({ name, phone: "", dob: "" });
-  const [draft,  setDraft]    = useState(values);
+  const [editing, setEditing]     = useState(false);
+  const [saving,  setSaving]      = useState(false);
+  const [saved,   setSaved]       = useState(false);
+  const [saveErr, setSaveErr]     = useState<string | null>(null);
+  const [draft,   setDraft]       = useState({ name: "", phone: "", dob: "" });
+  const fileInputRef              = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const supabase                  = createClient();
 
-  const set = (key: keyof typeof draft) => (v: string) =>
-    setDraft((p) => ({ ...p, [key]: v }));
+  // Sync when profile loads
+  useEffect(() => {
+    if (profile) {
+      setDraft({
+        name:  profile.full_name  ?? "",
+        phone: profile.phone      ?? "",
+        dob:   profile.date_of_birth ?? "",
+      });
+      setAvatarUrl(profile.avatar_url);
+    }
+  }, [profile]);
 
-  const handleEdit = () => { setDraft(values); setEditing(true); };
+  const displayName = profile?.full_name ?? "";
 
-  const handleSave = () => {
-    setValues(draft);
+  const handleEdit = () => {
+    setDraft({
+      name:  profile?.full_name      ?? "",
+      phone: profile?.phone          ?? "",
+      dob:   profile?.date_of_birth  ?? "",
+    });
+    setSaveErr(null);
+    setEditing(true);
+  };
+
+  const handleCancel = () => { setEditing(false); setSaveErr(null); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveErr(null);
+    const result = await updatePersonalInfoAction({
+      full_name:     draft.name.trim() || null,
+      phone:         draft.phone.trim() || null,
+      date_of_birth: draft.dob || null,
+    });
+    setSaving(false);
+    if (result.error) { setSaveErr(result.error); return; }
+    await onSaved();
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleCancel = () => { setEditing(false); setDraft(values); };
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setSaveErr("Avatar must be under 5 MB."); return; }
+
+    setUploading(true);
+    setSaveErr(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploading(false); return; }
+
+    const ext   = file.name.split(".").pop();
+    const path  = `${user.id}/avatar.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (upErr) { setSaveErr(upErr.message); setUploading(false); return; }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const result = await updateAvatarUrlAction(publicUrl);
+    if (result.error) { setSaveErr(result.error); }
+    else {
+      setAvatarUrl(publicUrl);
+      await onSaved();
+    }
+    setUploading(false);
+    e.target.value = "";
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm">
@@ -266,6 +428,7 @@ function PersonalInfoCard({
         </div>
         <CardActions
           editing={editing}
+          saving={saving}
           saved={saved}
           onEdit={handleEdit}
           onSave={handleSave}
@@ -274,26 +437,56 @@ function PersonalInfoCard({
       </div>
 
       <div className="p-6 space-y-5">
+        {saveErr && <CardError message={saveErr} />}
+
         {/* Avatar */}
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10">
-              <span className="text-xl font-bold text-primary">{initials}</span>
-            </div>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="size-16 rounded-2xl object-cover" />
+            ) : (
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+                <span className="text-xl font-bold text-primary">{initials}</span>
+              </div>
+            )}
             {editing && (
-              <button className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted/50">
-                <Camera className="size-3 text-muted-foreground" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+              >
+                {uploading
+                  ? <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                  : <Camera className="size-3 text-muted-foreground" />
+                }
               </button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
           {editing ? (
-            <Button variant="outline" size="sm" className="h-7 text-xs">
-              Change photo
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading…" : "Change photo"}
             </Button>
           ) : (
             <div>
               <p className="text-sm font-semibold text-foreground">
-                {values.name || "Your Name"}
+                {loading ? (
+                  <span className="inline-block h-3.5 w-28 animate-pulse rounded bg-muted" />
+                ) : (
+                  displayName || "Your Name"
+                )}
               </p>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
@@ -301,38 +494,21 @@ function PersonalInfoCard({
         </div>
 
         {/* Read / Edit */}
-        {editing ? (
+        {loading ? (
+          <ProfileSkeleton />
+        ) : editing ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Full name"
-              value={draft.name}
-              onChange={set("name")}
-            />
-            <Field
-              label="Email address"
-              defaultValue={email}
-              type="email"
-              disabled
-            />
-            <Field
-              label="Phone number"
-              value={draft.phone}
-              onChange={set("phone")}
-              placeholder="+1 (555) 000-0000"
-            />
-            <Field
-              label="Date of birth"
-              value={draft.dob}
-              onChange={set("dob")}
-              type="date"
-            />
+            <Field label="Full name" value={draft.name} onChange={(v) => setDraft((p) => ({ ...p, name: v }))} />
+            <Field label="Email address" defaultValue={email} type="email" disabled />
+            <Field label="Phone number" value={draft.phone} onChange={(v) => setDraft((p) => ({ ...p, phone: v }))} placeholder="+1 (555) 000-0000" />
+            <Field label="Date of birth" value={draft.dob} onChange={(v) => setDraft((p) => ({ ...p, dob: v }))} type="date" />
           </div>
         ) : (
           <div className="space-y-0.5">
-            <InfoRow label="Full name"     value={values.name}  />
-            <InfoRow label="Email"         value={email}        />
-            <InfoRow label="Phone"         value={values.phone} />
-            <InfoRow label="Date of birth" value={values.dob}   />
+            <InfoRow label="Full name"     value={profile?.full_name      ?? ""} />
+            <InfoRow label="Email"         value={email}                          />
+            <InfoRow label="Phone"         value={profile?.phone          ?? ""} />
+            <InfoRow label="Date of birth" value={profile?.date_of_birth  ?? ""} />
           </div>
         )}
       </div>
@@ -342,10 +518,20 @@ function PersonalInfoCard({
 
 // ── Medical Profile ──────────────────────────────────────────
 
-function MedicalProfileCard() {
+function MedicalProfileCard({
+  profile,
+  loading,
+  onSaved,
+}: {
+  profile: SettingsProfile | null;
+  loading: boolean;
+  onSaved: () => Promise<void>;
+}) {
   const [editing, setEditing] = useState(false);
+  const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
-  const [values, setValues]   = useState({
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [draft,   setDraft]   = useState({
     bloodType:  "",
     gender:     "",
     smoking:    "",
@@ -353,15 +539,49 @@ function MedicalProfileCard() {
     conditions: "",
     otherMeds:  "",
   });
-  const [draft, setDraft] = useState(values);
 
-  const set = (key: keyof typeof draft) => (v: string) =>
-    setDraft((p) => ({ ...p, [key]: v }));
+  useEffect(() => {
+    if (profile) {
+      setDraft({
+        bloodType:  profile.blood_type         ?? "",
+        gender:     profile.gender             ?? "",
+        smoking:    profile.smoking_status     ?? "",
+        allergies:  profile.allergies          ?? "",
+        conditions: profile.chronic_conditions ?? "",
+        otherMeds:  profile.other_medications  ?? "",
+      });
+    }
+  }, [profile]);
 
-  const handleEdit   = () => { setDraft(values); setEditing(true); };
-  const handleCancel = () => { setEditing(false); setDraft(values); };
-  const handleSave   = () => {
-    setValues(draft);
+  const handleEdit = () => {
+    setDraft({
+      bloodType:  profile?.blood_type         ?? "",
+      gender:     profile?.gender             ?? "",
+      smoking:    profile?.smoking_status     ?? "",
+      allergies:  profile?.allergies          ?? "",
+      conditions: profile?.chronic_conditions ?? "",
+      otherMeds:  profile?.other_medications  ?? "",
+    });
+    setSaveErr(null);
+    setEditing(true);
+  };
+
+  const handleCancel = () => { setEditing(false); setSaveErr(null); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveErr(null);
+    const result = await updateMedicalProfileAction({
+      blood_type:         draft.bloodType  || null,
+      gender:             draft.gender     || null,
+      smoking_status:     draft.smoking    || null,
+      allergies:          draft.allergies.trim()  || null,
+      chronic_conditions: draft.conditions.trim() || null,
+      other_medications:  draft.otherMeds.trim()  || null,
+    });
+    setSaving(false);
+    if (result.error) { setSaveErr(result.error); return; }
+    await onSaved();
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -373,11 +593,12 @@ function MedicalProfileCard() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">Medical Profile</h2>
           <p className="text-xs text-muted-foreground">
-            Shared with Dr. Jack to personalise your care
+            Shared with your doctor to personalise your care
           </p>
         </div>
         <CardActions
           editing={editing}
+          saving={saving}
           saved={saved}
           onEdit={handleEdit}
           onSave={handleSave}
@@ -386,54 +607,57 @@ function MedicalProfileCard() {
       </div>
 
       <div className="p-6">
-        {editing ? (
+        {saveErr && <div className="mb-4"><CardError message={saveErr} /></div>}
+        {loading ? (
+          <ProfileSkeleton />
+        ) : editing ? (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <SelectField
                 label="Blood type"
                 value={draft.bloodType}
-                onChange={set("bloodType")}
+                onChange={(v) => setDraft((p) => ({ ...p, bloodType: v }))}
                 options={["", "A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"]}
               />
               <SelectField
                 label="Gender"
                 value={draft.gender}
-                onChange={set("gender")}
+                onChange={(v) => setDraft((p) => ({ ...p, gender: v }))}
                 options={["", "Male", "Female", "Non-binary", "Prefer not to say"]}
               />
               <SelectField
                 label="Smoking status"
                 value={draft.smoking}
-                onChange={set("smoking")}
+                onChange={(v) => setDraft((p) => ({ ...p, smoking: v }))}
                 options={["", "Non-smoker", "Former smoker", "Current smoker"]}
               />
             </div>
             <Field
               label="Known allergies"
               value={draft.allergies}
-              onChange={set("allergies")}
+              onChange={(v) => setDraft((p) => ({ ...p, allergies: v }))}
               placeholder="e.g. Penicillin, Latex, Peanuts"
             />
             <TextareaField
               label="Chronic conditions"
               value={draft.conditions}
-              onChange={set("conditions")}
+              onChange={(v) => setDraft((p) => ({ ...p, conditions: v }))}
               placeholder="e.g. Type 2 Diabetes, Hypertension — leave blank if none"
             />
             <TextareaField
               label="Other medications (outside prescriptions)"
               value={draft.otherMeds}
-              onChange={set("otherMeds")}
-              placeholder="Supplements or OTC medications Dr. Jack should know about"
+              onChange={(v) => setDraft((p) => ({ ...p, otherMeds: v }))}
+              placeholder="Supplements or OTC medications your doctor should know about"
             />
           </div>
         ) : (
           <div className="space-y-0.5">
-            <InfoRow label="Blood type"       value={values.bloodType}  />
-            <InfoRow label="Gender"           value={values.gender}     />
-            <InfoRow label="Smoking status"   value={values.smoking}    />
-            <InfoRow label="Known allergies"  value={values.allergies}  />
-            <InfoRow label="Chronic conditions" value={values.conditions} />
+            <InfoRow label="Blood type"         value={profile?.blood_type         ?? ""} />
+            <InfoRow label="Gender"             value={profile?.gender             ?? ""} />
+            <InfoRow label="Smoking status"     value={profile?.smoking_status     ?? ""} />
+            <InfoRow label="Known allergies"    value={profile?.allergies          ?? ""} />
+            <InfoRow label="Chronic conditions" value={profile?.chronic_conditions ?? ""} />
           </div>
         )}
       </div>
@@ -443,23 +667,54 @@ function MedicalProfileCard() {
 
 // ── Emergency Contact ────────────────────────────────────────
 
-function EmergencyContactCard() {
+function EmergencyContactCard({
+  profile,
+  loading,
+  onSaved,
+}: {
+  profile: SettingsProfile | null;
+  loading: boolean;
+  onSaved: () => Promise<void>;
+}) {
   const [editing, setEditing] = useState(false);
+  const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
-  const [values, setValues]   = useState({
-    contactName:  "",
-    relationship: "",
-    phone:        "",
-  });
-  const [draft, setDraft] = useState(values);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [draft,   setDraft]   = useState({ name: "", relation: "", phone: "" });
 
-  const set = (key: keyof typeof draft) => (v: string) =>
-    setDraft((p) => ({ ...p, [key]: v }));
+  useEffect(() => {
+    if (profile) {
+      setDraft({
+        name:     profile.emergency_contact_name     ?? "",
+        relation: profile.emergency_contact_relation ?? "",
+        phone:    profile.emergency_contact_phone    ?? "",
+      });
+    }
+  }, [profile]);
 
-  const handleEdit   = () => { setDraft(values); setEditing(true); };
-  const handleCancel = () => { setEditing(false); setDraft(values); };
-  const handleSave   = () => {
-    setValues(draft);
+  const handleEdit = () => {
+    setDraft({
+      name:     profile?.emergency_contact_name     ?? "",
+      relation: profile?.emergency_contact_relation ?? "",
+      phone:    profile?.emergency_contact_phone    ?? "",
+    });
+    setSaveErr(null);
+    setEditing(true);
+  };
+
+  const handleCancel = () => { setEditing(false); setSaveErr(null); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveErr(null);
+    const result = await updateEmergencyContactAction({
+      emergency_contact_name:     draft.name.trim()     || null,
+      emergency_contact_relation: draft.relation.trim() || null,
+      emergency_contact_phone:    draft.phone.trim()    || null,
+    });
+    setSaving(false);
+    if (result.error) { setSaveErr(result.error); return; }
+    await onSaved();
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -476,6 +731,7 @@ function EmergencyContactCard() {
         </div>
         <CardActions
           editing={editing}
+          saving={saving}
           saved={saved}
           onEdit={handleEdit}
           onSave={handleSave}
@@ -484,32 +740,35 @@ function EmergencyContactCard() {
       </div>
 
       <div className="p-6">
-        {editing ? (
+        {saveErr && <div className="mb-4"><CardError message={saveErr} /></div>}
+        {loading ? (
+          <ProfileSkeleton />
+        ) : editing ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Contact name"
-              value={draft.contactName}
-              onChange={set("contactName")}
+              value={draft.name}
+              onChange={(v) => setDraft((p) => ({ ...p, name: v }))}
               placeholder="Full name"
             />
             <Field
               label="Relationship"
-              value={draft.relationship}
-              onChange={set("relationship")}
+              value={draft.relation}
+              onChange={(v) => setDraft((p) => ({ ...p, relation: v }))}
               placeholder="e.g. Spouse, Parent"
             />
             <Field
               label="Phone number"
               value={draft.phone}
-              onChange={set("phone")}
+              onChange={(v) => setDraft((p) => ({ ...p, phone: v }))}
               placeholder="+1 (555) 000-0000"
             />
           </div>
         ) : (
           <div className="space-y-0.5">
-            <InfoRow label="Contact name" value={values.contactName}  />
-            <InfoRow label="Relationship" value={values.relationship} />
-            <InfoRow label="Phone"        value={values.phone}        />
+            <InfoRow label="Contact name" value={profile?.emergency_contact_name     ?? ""} />
+            <InfoRow label="Relationship" value={profile?.emergency_contact_relation ?? ""} />
+            <InfoRow label="Phone"        value={profile?.emergency_contact_phone    ?? ""} />
           </div>
         )}
       </div>
@@ -548,19 +807,37 @@ const NOTIFICATION_GROUPS = [
   },
 ];
 
-function NotificationsTab() {
+const DEFAULT_PREFS = Object.fromEntries(
+  NOTIFICATION_GROUPS.flatMap((g) => g.items.map((item) => [item.id, item.defaultValue]))
+);
+
+function NotificationsTab({
+  savedPrefs,
+}: {
+  savedPrefs: Record<string, boolean> | null;
+}) {
   const [prefs, setPrefs] = useState<Record<string, boolean>>(
-    Object.fromEntries(
-      NOTIFICATION_GROUPS.flatMap((g) =>
-        g.items.map((item) => [item.id, item.defaultValue])
-      )
-    )
+    savedPrefs ? { ...DEFAULT_PREFS, ...savedPrefs } : DEFAULT_PREFS
   );
   const [channels, setChannels] = useState({ email: true, sms: false });
   const [flashId,  setFlashId]  = useState<string | null>(null);
+  const [, startTransition]     = useTransition();
+
+  // Sync when savedPrefs arrive
+  useEffect(() => {
+    if (savedPrefs) setPrefs({ ...DEFAULT_PREFS, ...savedPrefs });
+  }, [savedPrefs]);
+
+  const persistPrefs = (next: Record<string, boolean>) => {
+    startTransition(async () => {
+      await updateNotificationPreferencesAction(next);
+    });
+  };
 
   const togglePref = (id: string) => {
-    setPrefs((p) => ({ ...p, [id]: !p[id] }));
+    const next = { ...prefs, [id]: !prefs[id] };
+    setPrefs(next);
+    persistPrefs(next);
     setFlashId(id);
     setTimeout(() => setFlashId(null), 1200);
   };
@@ -656,13 +933,25 @@ function NotificationsTab() {
 
 function SecurityTab() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [saving,           setSaving]           = useState(false);
   const [passwordSaved,    setPasswordSaved]    = useState(false);
+  const [pwError,          setPwError]          = useState<string | null>(null);
   const [showCurrent,      setShowCurrent]      = useState(false);
   const [showNew,          setShowNew]          = useState(false);
   const [twoFa,            setTwoFa]            = useState(false);
+  const [pwFields,         setPwFields]         = useState({ current: "", newPw: "", confirm: "" });
 
-  const handleSavePassword = () => {
+  const handleSavePassword = async () => {
+    setPwError(null);
+    setSaving(true);
+    const result = await updatePasswordAction({
+      newPassword:     pwFields.newPw,
+      confirmPassword: pwFields.confirm,
+    });
+    setSaving(false);
+    if (result.error) { setPwError(result.error); return; }
     setPasswordSaved(true);
+    setPwFields({ current: "", newPw: "", confirm: "" });
     setTimeout(() => {
       setPasswordSaved(false);
       setShowPasswordForm(false);
@@ -688,7 +977,7 @@ function SecurityTab() {
               variant="outline"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => setShowPasswordForm(true)}
+              onClick={() => { setShowPasswordForm(true); setPwError(null); }}
             >
               Change
             </Button>
@@ -697,23 +986,34 @@ function SecurityTab() {
 
         {showPasswordForm && (
           <div className="space-y-4 p-6">
+            {pwError && <CardError message={pwError} />}
             <PasswordField
               label="Current password"
+              value={pwFields.current}
+              onChange={(v) => setPwFields((p) => ({ ...p, current: v }))}
               show={showCurrent}
               setShow={setShowCurrent}
             />
             <PasswordField
               label="New password"
+              value={pwFields.newPw}
+              onChange={(v) => setPwFields((p) => ({ ...p, newPw: v }))}
               show={showNew}
               setShow={setShowNew}
             />
-            <Field label="Confirm new password" type="password" />
+            <Field
+              label="Confirm new password"
+              value={pwFields.confirm}
+              onChange={(v) => setPwFields((p) => ({ ...p, confirm: v }))}
+              type="password"
+            />
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 text-xs text-muted-foreground"
-                onClick={() => { setShowPasswordForm(false); setPasswordSaved(false); }}
+                onClick={() => { setShowPasswordForm(false); setPwError(null); setPwFields({ current: "", newPw: "", confirm: "" }); }}
+                disabled={saving}
               >
                 Cancel
               </Button>
@@ -721,8 +1021,11 @@ function SecurityTab() {
                 size="sm"
                 className="h-8 min-w-36 gap-1.5 text-xs"
                 onClick={handleSavePassword}
+                disabled={saving}
               >
-                {passwordSaved ? (
+                {saving ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : passwordSaved ? (
                   <>
                     <Check className="size-3" />
                     Updated
@@ -966,10 +1269,14 @@ function TextareaField({
 
 function PasswordField({
   label,
+  value,
+  onChange,
   show,
   setShow,
 }: {
   label: string;
+  value: string;
+  onChange: (v: string) => void;
   show: boolean;
   setShow: (v: boolean) => void;
 }) {
@@ -981,6 +1288,8 @@ function PasswordField({
       <div className="relative">
         <input
           type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="••••••••"
           className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         />

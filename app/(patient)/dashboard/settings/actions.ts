@@ -6,6 +6,122 @@ import { createClient } from "@/lib/supabase/server";
 
 type ActionResult = { error: string | null };
 
+// ── Fetch ───────────────────────────────────────────────────────
+
+export interface SettingsProfile {
+  full_name:                  string | null;
+  email:                      string | null;
+  phone:                      string | null;
+  date_of_birth:              string | null;
+  avatar_url:                 string | null;
+  blood_type:                 string | null;
+  gender:                     string | null;
+  smoking_status:             string | null;
+  allergies:                  string | null;
+  chronic_conditions:         string | null;
+  other_medications:          string | null;
+  emergency_contact_name:     string | null;
+  emergency_contact_relation: string | null;
+  emergency_contact_phone:    string | null;
+  notification_preferences:   Record<string, boolean> | null;
+}
+
+export async function getSettingsDataAction(): Promise<SettingsProfile | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select(`
+      full_name,
+      phone,
+      date_of_birth,
+      avatar_url,
+      blood_type,
+      gender,
+      smoking_status,
+      allergies,
+      chronic_conditions,
+      other_medications,
+      emergency_contact_name,
+      emergency_contact_relation,
+      emergency_contact_phone,
+      notification_preferences
+    `)
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    ...(data as any),
+    email: user.email ?? null,
+  } as SettingsProfile;
+}
+
+// ── Targeted updates ────────────────────────────────────────────
+
+export async function updatePersonalInfoAction(payload: {
+  full_name:     string | null;
+  phone:         string | null;
+  date_of_birth: string | null;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("users")
+    .update(payload)
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/settings");
+  return { error: null };
+}
+
+export async function updateMedicalProfileAction(payload: {
+  blood_type:         string | null;
+  gender:             string | null;
+  smoking_status:     string | null;
+  allergies:          string | null;
+  chronic_conditions: string | null;
+  other_medications:  string | null;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("users")
+    .update(payload)
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/settings");
+  return { error: null };
+}
+
+export async function updateEmergencyContactAction(payload: {
+  emergency_contact_name:     string | null;
+  emergency_contact_relation: string | null;
+  emergency_contact_phone:    string | null;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("users")
+    .update(payload)
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/settings");
+  return { error: null };
+}
+
 // ── Profile ────────────────────────────────────────────────────
 
 export async function updateProfileAction(payload: {
