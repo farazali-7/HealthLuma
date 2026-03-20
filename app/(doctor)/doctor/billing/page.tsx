@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -15,6 +15,7 @@ import {
   Percent,
   DollarSign,
   Save,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,51 +27,16 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
 } from "recharts";
+import {
+  getDoctorBillingAction,
+  savePricingAction,
+  type BillingData,
+  type UIInvoiceStatus,
+} from "./actions";
 
-// ─── Data ──────────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────
 
-const MONTHLY_REVENUE = [
-  { month: "Sep", revenue: 3200 },
-  { month: "Oct", revenue: 4100 },
-  { month: "Nov", revenue: 3600 },
-  { month: "Dec", revenue: 2800 },
-  { month: "Jan", revenue: 4400 },
-  { month: "Feb", revenue: 4900 },
-  { month: "Mar", revenue: 1400 },
-];
-
-const PRO_MEMBERS = [
-  { name: "Aisha Malik",  avatar: "AM", since: "Jan 2026", family: 3, nextRenewal: "Jan 2027" },
-  { name: "Bilal Hassan", avatar: "BH", since: "Mar 2025", family: 2, nextRenewal: "Mar 2026" },
-  { name: "Fatima Shah",  avatar: "FS", since: "Feb 2026", family: 1, nextRenewal: "Feb 2027" },
-  { name: "Ahmed Rehman", avatar: "AR", since: "Oct 2025", family: 4, nextRenewal: "Oct 2026" },
-  { name: "Nadia Jamil",  avatar: "NJ", since: "Nov 2025", family: 2, nextRenewal: "Nov 2026" },
-];
-
-type InvoiceStatus = "paid" | "pending" | "overdue";
-
-interface Invoice {
-  id: string;
-  patient: string;
-  avatar: string;
-  type: string;
-  date: string;
-  amount: number;
-  status: InvoiceStatus;
-}
-
-const INVOICES: Invoice[] = [
-  { id: "INV-2026-038", patient: "Sara Qureshi",  avatar: "SQ", type: "New Patient Consultation",  date: "Mar 10, 2026", amount: 100, status: "pending" },
-  { id: "INV-2026-037", patient: "Bilal Hassan",  avatar: "BH", type: "Diabetes Follow-up",        date: "Mar 10, 2026", amount: 100, status: "paid"    },
-  { id: "INV-2026-036", patient: "Aisha Malik",   avatar: "AM", type: "Hypertension Follow-up",    date: "Mar 10, 2026", amount: 100, status: "paid"    },
-  { id: "INV-2026-035", patient: "Khaled Noor",   avatar: "KN", type: "Follow-up Consultation",    date: "Mar 8, 2026",  amount: 100, status: "paid"    },
-  { id: "INV-2026-034", patient: "Nadia Jamil",   avatar: "NJ", type: "Annual Health Check",       date: "Mar 8, 2026",  amount: 100, status: "paid"    },
-  { id: "INV-2026-028", patient: "Ahmed Rehman",  avatar: "AR", type: "Cardiac Follow-up",         date: "Feb 15, 2026", amount: 100, status: "paid"    },
-  { id: "INV-2026-020", patient: "Aisha Malik",   avatar: "AM", type: "Lab Review Consultation",   date: "Feb 10, 2026", amount: 100, status: "paid"    },
-  { id: "INV-2026-012", patient: "Tariq Mehmood", avatar: "TM", type: "Consultation (No Show)",    date: "Mar 7, 2026",  amount: 50,  status: "overdue" },
-];
-
-const STATUS_META: Record<InvoiceStatus, { label: string; cls: string; icon: React.ReactNode }> = {
+const STATUS_META: Record<UIInvoiceStatus, { label: string; cls: string; icon: React.ReactNode }> = {
   paid:    { label: "Paid",    cls: "bg-vault-positive-light text-vault-positive", icon: <CheckCircle2 className="size-3" /> },
   pending: { label: "Pending", cls: "bg-vault-warning-light text-vault-warning",   icon: <Clock className="size-3" />       },
   overdue: { label: "Overdue", cls: "bg-vault-negative-light text-vault-negative", icon: <AlertCircle className="size-3" /> },
@@ -91,28 +57,58 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const totalRevenue = MONTHLY_REVENUE.slice(0, 6).reduce((s, m) => s + m.revenue, 0);
-  const thisMonth    = MONTHLY_REVENUE[6].revenue;
-  const lastMonth    = MONTHLY_REVENUE[5].revenue;
-  const proMembers   = 18;
-  const pendingCount = INVOICES.filter((i) => i.status === "pending").length;
-  const overdueCount = INVOICES.filter((i) => i.status === "overdue").length;
-  const outstanding  = INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
-  const avgRevenue = Math.round(totalRevenue / 6);
-  const avgPct     = Math.round(((thisMonth - avgRevenue) / avgRevenue) * 100);
+  const [billingData,   setBillingData]   = useState<BillingData | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [consultFee,    setConsultFee]    = useState("100");
+  const [proDiscount,   setProDiscount]   = useState("20");
+  const [proAnnual,     setProAnnual]     = useState("150");
+  const [pricingSaved,  setPricingSaved]  = useState(false);
+  const [savingPricing, setSavingPricing] = useState(false);
 
-  // Pricing controls (UI only — not wired to backend)
-  const [consultFee,   setConsultFee]   = useState("100");
-  const [proDiscount,  setProDiscount]  = useState("20");
-  const [proAnnual,    setProAnnual]    = useState("150");
-  const [pricingSaved, setPricingSaved] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await getDoctorBillingAction();
+    setBillingData(result);
+    setConsultFee(String(result.pricing.consultation_fee_cents / 100));
+    setProDiscount(String(result.pricing.pro_discount_pct));
+    setProAnnual(String(result.pricing.pro_annual_fee_cents / 100));
+    setLoading(false);
+  }, []);
 
-  function handleSavePricing() {
-    setPricingSaved(true);
-    setTimeout(() => setPricingSaved(false), 2000);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleSavePricing() {
+    setSavingPricing(true);
+    const result = await savePricingAction({
+      consultation_fee_cents: parseFloat(consultFee) * 100,
+      pro_annual_fee_cents:   parseFloat(proAnnual)  * 100,
+      pro_discount_pct:       parseInt(proDiscount,  10),
+    });
+    setSavingPricing(false);
+    if (!result.error) {
+      setPricingSaved(true);
+      setTimeout(() => setPricingSaved(false), 2000);
+    }
   }
 
-  const pctChange = Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+  const thisMonthRevenue  = billingData?.thisMonthRevenue  ?? 0;
+  const lastMonthRevenue  = billingData?.lastMonthRevenue  ?? 0;
+  const totalRevenue6m    = billingData?.totalRevenue6m    ?? 0;
+  const proMemberCount    = billingData?.proMemberCount    ?? 0;
+  const pendingCount      = billingData?.pendingCount      ?? 0;
+  const overdueCount      = billingData?.overdueCount      ?? 0;
+  const outstandingDollars = Math.round((billingData?.outstandingCents ?? 0) / 100);
+
+  const pctChange = lastMonthRevenue > 0
+    ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+    : 0;
+
+  const avgRevenue = billingData ? Math.round(totalRevenue6m / 6) : 0;
+  const avgPct     = avgRevenue > 0
+    ? Math.round(((thisMonthRevenue - avgRevenue) / avgRevenue) * 100)
+    : 0;
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
@@ -120,7 +116,10 @@ export default function BillingPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" style={{ fontFamily: "var(--font-playfair)" }}>
+          <h1
+            className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+            style={{ fontFamily: "var(--font-playfair)" }}
+          >
             Billing
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -135,6 +134,7 @@ export default function BillingPage() {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+
         {/* This Month */}
         <div className="relative overflow-hidden rounded-2xl border border-[#4D9A7F]/20 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
           <div className="flex items-start justify-between">
@@ -144,10 +144,10 @@ export default function BillingPage() {
             </span>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-            ${thisMonth.toLocaleString()}
+            {loading ? <span className="text-muted-foreground/40">—</span> : `$${thisMonthRevenue.toLocaleString()}`}
           </p>
           <p className={`mt-1 text-[11px] font-medium ${pctChange >= 0 ? "text-vault-positive" : "text-vault-negative"}`}>
-            {pctChange >= 0 ? "+" : ""}{pctChange}% vs last month
+            {loading ? <span className="text-muted-foreground/40">—</span> : `${pctChange >= 0 ? "+" : ""}${pctChange}% vs last month`}
           </p>
         </div>
 
@@ -160,9 +160,9 @@ export default function BillingPage() {
             </span>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-            ${totalRevenue.toLocaleString()}
+            {loading ? <span className="text-muted-foreground/40">—</span> : `$${totalRevenue6m.toLocaleString()}`}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">Sep 2025 – Feb 2026</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Rolling 6 months</p>
         </div>
 
         {/* Pro Members */}
@@ -174,9 +174,9 @@ export default function BillingPage() {
             </span>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-            {proMembers}
+            {loading ? <span className="text-muted-foreground/40">—</span> : proMemberCount}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">${proMembers * 150}/yr subscriptions</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Active subscriptions</p>
         </div>
 
         {/* Outstanding */}
@@ -188,9 +188,11 @@ export default function BillingPage() {
             </span>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-            ${outstanding}
+            {loading ? <span className="text-muted-foreground/40">—</span> : `$${outstandingDollars}`}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{pendingCount + overdueCount} invoices</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {loading ? "—" : `${pendingCount + overdueCount} invoices`}
+          </p>
         </div>
       </div>
 
@@ -210,17 +212,21 @@ export default function BillingPage() {
             </span>
           </div>
           <div className="px-3 pb-4 pt-4">
-            <div className="h-52 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={MONTHLY_REVENUE} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
-                  <RechartsTooltip content={<RevenueTooltip />} />
-                  <Bar dataKey="revenue" fill="#4D9A7F" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {loading ? (
+              <div className="h-52 w-full animate-pulse rounded-xl bg-muted/30" />
+            ) : (
+              <div className="h-52 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={billingData?.monthlyRevenue ?? []} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="2 5" stroke="var(--vault-border-subtle)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "var(--font-dm-sans)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
+                    <RechartsTooltip content={<RevenueTooltip />} />
+                    <Bar dataKey="revenue" fill="#4D9A7F" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
@@ -236,29 +242,53 @@ export default function BillingPage() {
             </button>
           </div>
           <div className="divide-y divide-border/50">
-            {INVOICES.slice(0, 6).map((inv) => {
-              const meta = STATUS_META[inv.status];
-              return (
-                <div key={inv.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20">
-                  <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
-                    inv.status === "paid" ? "bg-muted/50 text-muted-foreground" : "border border-border bg-card text-foreground"
-                  }`}>
-                    {inv.avatar}
+            {loading ? (
+              <>
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3 animate-pulse">
+                    <div className="size-8 shrink-0 rounded-lg bg-muted/50" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 w-28 rounded-full bg-muted/50" />
+                      <div className="h-2.5 w-20 rounded-full bg-muted/40" />
+                    </div>
+                    <div className="shrink-0 space-y-1.5 text-right">
+                      <div className="h-3 w-10 rounded-full bg-muted/50" />
+                      <div className="h-2.5 w-12 rounded-full bg-muted/40" />
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-foreground">{inv.patient}</p>
-                    <p className="text-[10px] text-muted-foreground">{inv.type}</p>
+                ))}
+              </>
+            ) : (
+              (billingData?.recentInvoices ?? []).slice(0, 6).map((inv) => {
+                const meta   = STATUS_META[inv.status];
+                const initials = inv.patient_full_name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div key={inv.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20">
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
+                      inv.status === "paid" ? "bg-muted/50 text-muted-foreground" : "border border-border bg-card text-foreground"
+                    }`}>
+                      {initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-foreground">{inv.patient_full_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{inv.type}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold tabular-nums text-foreground">${inv.amount}</p>
+                      <span className={`flex items-center gap-0.5 text-[9px] font-semibold ${meta.cls.split(" ")[1]}`}>
+                        {meta.icon}
+                        {meta.label}
+                      </span>
+                    </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs font-semibold tabular-nums text-foreground">${inv.amount}</p>
-                    <span className={`flex items-center gap-0.5 text-[9px] font-semibold ${meta.cls.split(" ")[1]}`}>
-                      {meta.icon}
-                      {meta.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -366,10 +396,16 @@ export default function BillingPage() {
             </div>
             <Button
               onClick={handleSavePricing}
+              disabled={savingPricing}
               className="shrink-0 gap-2 self-start sm:self-auto"
               style={{ background: pricingSaved ? "#185C45" : "#4D9A7F", color: "white" }}
             >
-              {pricingSaved ? (
+              {savingPricing ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Saving…
+                </>
+              ) : pricingSaved ? (
                 <>
                   <CheckCircle2 className="size-4" />
                   Saved
@@ -393,7 +429,7 @@ export default function BillingPage() {
             <h2 className="mt-0.5 text-sm font-semibold text-foreground">Pro Members</h2>
           </div>
           <span className="rounded-full bg-[#4D9A7F]/10 px-3 py-1 text-xs font-semibold text-[#4D9A7F]">
-            {PRO_MEMBERS.length} of {proMembers} shown
+            {loading ? "—" : `${(billingData?.proMembers ?? []).length} shown`}
           </span>
         </div>
 
@@ -407,31 +443,61 @@ export default function BillingPage() {
         </div>
 
         <div className="divide-y divide-border/50">
-          {PRO_MEMBERS.map((member) => (
-            <div key={member.name} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/20">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#4D9A7F]/20 bg-[#4D9A7F]/10 text-[11px] font-bold text-[#4D9A7F]">
-                {member.avatar}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">{member.name}</p>
-                <p className="text-[11px] text-muted-foreground">Member since {member.since}</p>
-              </div>
-              <div className="hidden shrink-0 w-20 text-center sm:block">
-                <p className="text-xs font-semibold tabular-nums text-foreground">{member.family}</p>
-                <p className="text-[10px] text-muted-foreground">members</p>
-              </div>
-              <div className="shrink-0 w-24 text-right sm:text-left">
-                <p className="text-xs font-semibold text-foreground">{member.nextRenewal}</p>
-                <p className="text-[10px] text-muted-foreground">renewal</p>
-              </div>
-              <div className="hidden shrink-0 sm:block">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
-                  <CheckCircle2 className="size-2.5" />
-                  Active
-                </span>
-              </div>
-            </div>
-          ))}
+          {loading ? (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-3.5 animate-pulse">
+                  <div className="size-9 shrink-0 rounded-xl bg-muted/50" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 w-28 rounded-full bg-muted/50" />
+                    <div className="h-2.5 w-20 rounded-full bg-muted/40" />
+                  </div>
+                  <div className="hidden sm:block w-20 text-center">
+                    <div className="h-3 w-6 mx-auto rounded-full bg-muted/50" />
+                  </div>
+                  <div className="shrink-0 w-24">
+                    <div className="h-3 w-16 rounded-full bg-muted/50" />
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (billingData?.proMembers ?? []).length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">No active pro members.</div>
+          ) : (
+            (billingData?.proMembers ?? []).map((member) => {
+              const initials = member.full_name
+                .split(" ")
+                .map((w) => w[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
+              return (
+                <div key={member.id} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/20">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#4D9A7F]/20 bg-[#4D9A7F]/10 text-[11px] font-bold text-[#4D9A7F]">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">{member.full_name}</p>
+                    <p className="text-[11px] text-muted-foreground">Member since {member.since}</p>
+                  </div>
+                  <div className="hidden shrink-0 w-20 text-center sm:block">
+                    <p className="text-xs font-semibold tabular-nums text-foreground">{member.family_count}</p>
+                    <p className="text-[10px] text-muted-foreground">members</p>
+                  </div>
+                  <div className="shrink-0 w-24 text-right sm:text-left">
+                    <p className="text-xs font-semibold text-foreground">{member.renews_at ?? "—"}</p>
+                    <p className="text-[10px] text-muted-foreground">renewal</p>
+                  </div>
+                  <div className="hidden shrink-0 sm:block">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#4D9A7F]/10 px-2.5 py-1 text-[10px] font-semibold text-[#4D9A7F]">
+                      <CheckCircle2 className="size-2.5" />
+                      Active
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
