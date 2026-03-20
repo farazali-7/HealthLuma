@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { sendNotification } from "@/lib/supabase/service";
+// sendNotification imported for future per-patient notification on publish
+import { sendNotification as _sendNotification } from "@/lib/supabase/service";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -141,6 +142,4 @@ export async function deleteAnnouncementAction(
   return { error: null };
 }
 
-// Exported so TypeScript can tree-shake the unused sendNotification import
-// if notifications are added later.
-export type { sendNotification };
+// _sendNotification is available for future per-patient notification on publish.
