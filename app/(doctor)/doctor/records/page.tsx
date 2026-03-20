@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import {
   Search,
   Plus,
@@ -13,76 +13,297 @@ import {
   Pill,
   Stethoscope,
   AlertCircle,
+  Loader2,
+  X,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getRecordsAction,
+  createClinicalNoteRecordAction,
+  type MedRecord,
+  type RecordType,
+} from "./actions";
+import {
+  searchPatientsAction,
+  type PatientOption,
+} from "../prescriptions/actions";
 
-// ─── Data ──────────────────────────────────────────────────────
-
-type RecordType = "note" | "lab" | "prescription" | "report" | "referral";
-
-interface MedRecord {
-  id: string;
-  patient: string;
-  avatar: string;
-  age: number;
-  type: RecordType;
-  title: string;
-  date: string;
-  size?: string;
-  summary?: string;
-  status?: "normal" | "abnormal" | "pending";
-}
-
-const RECORDS: MedRecord[] = [
-  { id: "1",  patient: "Sara Qureshi",  avatar: "SQ", age: 28, type: "lab",          title: "CBC Panel",                        date: "Mar 10, 2026", size: "180 KB", status: "pending",  summary: "Awaiting final review." },
-  { id: "2",  patient: "Aisha Malik",   avatar: "AM", age: 34, type: "note",         title: "Follow-up Clinical Note",          date: "Mar 10, 2026",              summary: "BP stable at 126/82. Lifestyle modifications discussed." },
-  { id: "3",  patient: "Bilal Hassan",  avatar: "BH", age: 52, type: "note",         title: "Diabetes Management Note",         date: "Mar 10, 2026",              summary: "Metformin adjusted to 1000mg. HbA1c 6.8% — improving." },
-  { id: "4",  patient: "Aisha Malik",   avatar: "AM", age: 34, type: "lab",          title: "Full Blood Count",                 date: "Feb 10, 2026", size: "210 KB", status: "normal",   summary: "All values within reference range." },
-  { id: "5",  patient: "Bilal Hassan",  avatar: "BH", age: 52, type: "lab",          title: "HbA1c & Metabolic Panel",          date: "Feb 10, 2026", size: "245 KB", status: "normal",   summary: "HbA1c 6.8% — good control." },
-  { id: "6",  patient: "Zainab Raza",   avatar: "ZR", age: 61, type: "lab",          title: "ESR & CRP — Inflammation Markers", date: "Feb 5, 2026",  size: "190 KB", status: "abnormal", summary: "CRP elevated at 18 mg/L. Arthritis flare confirmed." },
-  { id: "7",  patient: "Omar Farooq",   avatar: "OF", age: 45, type: "report",       title: "Annual Health Summary 2025",       date: "Oct 14, 2025", size: "350 KB" },
-  { id: "8",  patient: "Ahmed Rehman",  avatar: "AR", age: 66, type: "referral",     title: "Cardiology Referral — Dr. Rahman", date: "Feb 15, 2026", size: "62 KB" },
-  { id: "9",  patient: "Tariq Mehmood", avatar: "TM", age: 58, type: "report",       title: "Renal Function Upload",            date: "Feb 10, 2026", size: "156 KB" },
-  { id: "10", patient: "Fatima Shah",   avatar: "FS", age: 27, type: "lab",          title: "TSH + Free T4 Panel",              date: "Jan 20, 2026", size: "170 KB", status: "normal" },
-];
+// ─── Type meta ────────────────────────────────────────────────
 
 const TYPE_META: Record<RecordType, { label: string; icon: React.ReactNode; cls: string }> = {
-  note:         { label: "Clinical Note", icon: <FileText className="size-4" />,    cls: "bg-primary/10 text-primary"                    },
-  lab:          { label: "Lab Result",    icon: <FlaskConical className="size-4" />, cls: "bg-[#4D9A7F]/10 text-[#4D9A7F]"               },
-  prescription: { label: "Prescription",  icon: <Pill className="size-4" />,        cls: "bg-vault-warning-light text-vault-warning"     },
-  report:       { label: "Report",        icon: <FileText className="size-4" />,    cls: "bg-muted/60 text-muted-foreground"             },
-  referral:     { label: "Referral",      icon: <Stethoscope className="size-4" />, cls: "bg-violet-500/10 text-violet-600"              },
+  note:         { label: "Clinical Note", icon: <FileText className="size-4" />,    cls: "bg-primary/10 text-primary"                },
+  lab:          { label: "Lab Result",    icon: <FlaskConical className="size-4" />, cls: "bg-[#4D9A7F]/10 text-[#4D9A7F]"           },
+  prescription: { label: "Prescription",  icon: <Pill className="size-4" />,        cls: "bg-vault-warning-light text-vault-warning" },
+  report:       { label: "Report",        icon: <FileText className="size-4" />,    cls: "bg-muted/60 text-muted-foreground"         },
+  referral:     { label: "Referral",      icon: <Stethoscope className="size-4" />, cls: "bg-violet-500/10 text-violet-600"          },
 };
 
 type FilterOption = "All" | "Notes" | "Labs" | "Reports" | "Referrals";
 
+// ─── Skeletons ────────────────────────────────────────────────
+
+function RecordsSkeleton() {
+  return (
+    <div className="divide-y divide-border/50">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 px-5 py-4"
+          style={{ opacity: 1 - i * 0.18 }}
+        >
+          <div className="size-10 shrink-0 rounded-xl bg-muted/40 animate-pulse" />
+          <div className="flex items-center gap-3 flex-1">
+            <div className="size-8 shrink-0 rounded-lg bg-muted/40 animate-pulse" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 w-24 rounded bg-muted/40 animate-pulse" />
+              <div className="h-3.5 w-40 rounded bg-muted/40 animate-pulse" />
+              <div className="h-3 w-64 rounded bg-muted/30 animate-pulse" />
+            </div>
+          </div>
+          <div className="hidden sm:block h-3 w-20 rounded bg-muted/30 animate-pulse" />
+          <div className="hidden sm:block h-5 w-20 rounded-full bg-muted/30 animate-pulse" />
+          <div className="flex gap-1">
+            <div className="size-7 rounded-lg bg-muted/20 animate-pulse" />
+            <div className="size-7 rounded-lg bg-muted/20 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── New Note Modal ───────────────────────────────────────────
+
+function NewNoteModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [patient,   setPatient]   = useState<PatientOption | null>(null);
+  const [query,     setQuery]     = useState("");
+  const [results,   setResults]   = useState<PatientOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showDrop,  setShowDrop]  = useState(false);
+  const [content,   setContent]   = useState("");
+  const [error,     setError]     = useState<string | null>(null);
+  const [saved,     setSaved]     = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!query.trim() || patient) {
+      setResults([]);
+      setShowDrop(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      const data = await searchPatientsAction(query);
+      setResults(data);
+      setShowDrop(data.length > 0);
+      setSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, patient]);
+
+  function selectPatient(p: PatientOption) {
+    setPatient(p);
+    setQuery(p.full_name);
+    setShowDrop(false);
+    setResults([]);
+  }
+
+  function clearPatient() {
+    setPatient(null);
+    setQuery("");
+    setResults([]);
+    setShowDrop(false);
+  }
+
+  function handleSubmit() {
+    setError(null);
+    if (!patient) { setError("Please select a patient."); return; }
+    if (!content.trim()) { setError("Note content cannot be empty."); return; }
+
+    startTransition(async () => {
+      const { error: err } = await createClinicalNoteRecordAction({
+        patient_id: patient.id,
+        content,
+      });
+      if (err) {
+        setError(err);
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => {
+        onSuccess();
+      }, 600);
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+          <h2 className="text-sm font-semibold text-foreground">New Clinical Note</h2>
+          <button
+            onClick={onClose}
+            className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-4 p-6">
+          {/* Patient search */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Patient
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search patient by name…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (patient) setPatient(null);
+                }}
+                className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+              />
+              {patient && (
+                <button
+                  type="button"
+                  onClick={clearPatient}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+              {searching && (
+                <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
+              )}
+              {showDrop && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                  {results.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => selectPatient(p)}
+                      className="flex w-full items-center px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted/40"
+                    >
+                      {p.full_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Note Content
+            </label>
+            <textarea
+              rows={5}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write clinical note here…"
+              className="w-full resize-none rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-[#4D9A7F]/40 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-vault-negative">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={onClose}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={isPending || saved}
+            style={{ background: saved ? "#185C45" : "#4D9A7F", color: "white" }}
+            className="min-w-28 gap-2"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                Saving…
+              </>
+            ) : saved ? (
+              <>
+                <Check className="size-3.5" />
+                Saved
+              </>
+            ) : (
+              "Save Note"
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function RecordsPage() {
-  const [filter, setFilter] = useState<FilterOption>("All");
-  const [search, setSearch] = useState("");
+  const [records,      setRecords]      = useState<Omit<MedRecord, "_sortKey">[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [filter,       setFilter]       = useState<FilterOption>("All");
+  const [search,       setSearch]       = useState("");
+  const [showNoteModal, setShowNoteModal] = useState(false);
 
-  const filtered = RECORDS.filter((r) => {
+  const loadRecords = useCallback(async () => {
+    const data = await getRecordsAction();
+    setRecords(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
+
+  // ── Computed stats ──
+  const notesCount    = records.filter((r) => r.type === "note").length;
+  const labsCount     = records.filter((r) => r.type === "lab").length;
+  const reportsCount  = records.filter((r) => r.type === "report" || r.type === "prescription").length;
+  const referralCount = records.filter((r) => r.type === "referral").length;
+  const abnormalCount = 0;
+
+  // ── Filter + search ──
+  const filtered = records.filter((r) => {
     const matchFilter =
       filter === "All"      ? true :
       filter === "Notes"    ? r.type === "note" :
       filter === "Labs"     ? r.type === "lab" :
-      filter === "Reports"  ? r.type === "report" :
+      filter === "Reports"  ? (r.type === "report" || r.type === "prescription") :
       r.type === "referral";
 
     const matchSearch = search
-      ? r.patient.toLowerCase().includes(search.toLowerCase()) ||
+      ? r.patient_name.toLowerCase().includes(search.toLowerCase()) ||
         r.title.toLowerCase().includes(search.toLowerCase())
       : true;
 
     return matchFilter && matchSearch;
   });
-
-  const notesCount    = RECORDS.filter((r) => r.type === "note").length;
-  const labsCount     = RECORDS.filter((r) => r.type === "lab").length;
-  const reportsCount  = RECORDS.filter((r) => r.type === "report").length;
-  const referralCount = RECORDS.filter((r) => r.type === "referral").length;
-  const abnormalCount = RECORDS.filter((r) => r.status === "abnormal").length;
 
   return (
     <div className="space-y-6 px-4 py-7 sm:px-6 lg:px-8">
@@ -90,7 +311,10 @@ export default function RecordsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" style={{ fontFamily: "var(--font-playfair)" }}>
+          <h1
+            className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+            style={{ fontFamily: "var(--font-playfair)" }}
+          >
             Medical Records
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -102,7 +326,11 @@ export default function RecordsPage() {
             <Upload className="size-4" />
             Upload
           </Button>
-          <Button className="gap-2 self-start sm:self-auto" style={{ background: "#4D9A7F", color: "white" }}>
+          <Button
+            className="gap-2 self-start sm:self-auto"
+            style={{ background: "#4D9A7F", color: "white" }}
+            onClick={() => setShowNoteModal(true)}
+          >
             <Plus className="size-4" />
             New Note
           </Button>
@@ -117,7 +345,9 @@ export default function RecordsPage() {
             <span className="font-semibold text-vault-negative">
               {abnormalCount} abnormal result{abnormalCount > 1 ? "s" : ""}
             </span>{" "}
-            <span className="text-muted-foreground">flagged — review before next consultation.</span>
+            <span className="text-muted-foreground">
+              flagged — review before next consultation.
+            </span>
           </p>
         </div>
       )}
@@ -125,10 +355,10 @@ export default function RecordsPage() {
       {/* Stats strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Clinical Notes", value: notesCount,    cls: "text-primary",            dot: "bg-primary"          },
-          { label: "Lab Results",    value: labsCount,     cls: "text-[#4D9A7F]",          dot: "bg-[#4D9A7F]"        },
-          { label: "Reports",        value: reportsCount,  cls: "text-muted-foreground",   dot: "bg-muted-foreground" },
-          { label: "Referrals",      value: referralCount, cls: "text-violet-600",         dot: "bg-violet-500"       },
+          { label: "Clinical Notes", value: notesCount,    cls: "text-primary",          dot: "bg-primary"          },
+          { label: "Lab Results",    value: labsCount,     cls: "text-[#4D9A7F]",        dot: "bg-[#4D9A7F]"        },
+          { label: "Reports",        value: reportsCount,  cls: "text-muted-foreground", dot: "bg-muted-foreground" },
+          { label: "Referrals",      value: referralCount, cls: "text-violet-600",       dot: "bg-violet-500"       },
         ].map((s, i) => (
           <div key={i} className="rounded-xl border border-border bg-card px-4 py-3">
             <div className="flex items-center gap-1.5 mb-1">
@@ -158,7 +388,9 @@ export default function RecordsPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                filter === f ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                filter === f
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {f}
@@ -178,7 +410,9 @@ export default function RecordsPage() {
           <span>Actions</span>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <RecordsSkeleton />
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <FileText className="mx-auto mb-3 size-8 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No records found.</p>
@@ -190,9 +424,7 @@ export default function RecordsPage() {
               return (
                 <div
                   key={rec.id}
-                  className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/20 ${
-                    rec.status === "abnormal" ? "bg-vault-negative-light/20" : ""
-                  }`}
+                  className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/20"
                 >
                   {/* Type icon */}
                   <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${meta.cls}`}>
@@ -202,13 +434,18 @@ export default function RecordsPage() {
                   {/* Patient + record info */}
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/30 text-[10px] font-bold text-foreground">
-                      {rec.avatar}
+                      {rec.patient_initials}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold text-muted-foreground">{rec.patient} &middot; {rec.age}y</p>
+                      <p className="text-[11px] font-semibold text-muted-foreground">
+                        {rec.patient_name}
+                        {rec.patient_age !== null ? ` · ${rec.patient_age}y` : ""}
+                      </p>
                       <p className="text-sm font-medium text-foreground">{rec.title}</p>
                       {rec.summary && (
-                        <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{rec.summary}</p>
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                          {rec.summary}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -216,27 +453,16 @@ export default function RecordsPage() {
                   {/* Date */}
                   <div className="hidden shrink-0 sm:block">
                     <p className="text-xs text-muted-foreground">{rec.date}</p>
-                    {rec.size && (
-                      <p className="text-[10px] text-muted-foreground/60">{rec.size}</p>
+                    {rec.file_size && (
+                      <p className="text-[10px] text-muted-foreground/60">{rec.file_size}</p>
                     )}
                   </div>
 
-                  {/* Type + status badges */}
+                  {/* Type badge */}
                   <div className="hidden shrink-0 sm:block">
                     <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${meta.cls}`}>
                       {meta.label}
                     </span>
-                    {rec.status && (
-                      <div className="mt-1">
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${
-                          rec.status === "normal"   ? "bg-vault-positive-light text-vault-positive" :
-                          rec.status === "abnormal" ? "bg-vault-negative-light text-vault-negative" :
-                          "bg-vault-warning-light text-vault-warning"
-                        }`}>
-                          {rec.status}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions */}
@@ -247,13 +473,15 @@ export default function RecordsPage() {
                     >
                       <Eye className="size-3.5" />
                     </button>
-                    {rec.size && (
-                      <button
+                    {rec.file_url !== null && (
+                      <a
+                        href={rec.file_url}
+                        download
                         className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                         title="Download"
                       >
                         <Download className="size-3.5" />
-                      </button>
+                      </a>
                     )}
                     <button
                       className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
@@ -269,8 +497,20 @@ export default function RecordsPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {filtered.length} of {RECORDS.length} records shown
+        {filtered.length} of {records.length} records shown
       </p>
+
+      {/* New Note Modal */}
+      {showNoteModal && (
+        <NewNoteModal
+          onClose={() => setShowNoteModal(false)}
+          onSuccess={async () => {
+            setShowNoteModal(false);
+            setLoading(true);
+            await loadRecords();
+          }}
+        />
+      )}
     </div>
   );
 }

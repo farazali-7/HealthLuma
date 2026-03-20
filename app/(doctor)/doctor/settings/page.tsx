@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   User,
   Building2,
@@ -21,12 +22,19 @@ import {
   Monitor,
   Smartphone,
   Pencil,
+  Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button }         from "@/components/ui/button";
+import { createClient }   from "@/lib/supabase/client";
 import {
   getDoctorScheduleAction,
   saveDoctorScheduleAction,
+  getDoctorSettingsAction,
+  saveDoctorProfileAction,
+  saveDoctorClinicAction,
   type ScheduleRow,
+  type DoctorProfileData,
+  type DoctorClinicData,
 } from "./actions";
 
 type Tab = "profile" | "clinic" | "schedule" | "notifications" | "security";
@@ -34,7 +42,38 @@ type Tab = "profile" | "clinic" | "schedule" | "notifications" | "security";
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>("profile");
+  const router = useRouter();
+  const [tab,             setTab]             = useState<Tab>("profile");
+  const [profile,         setProfile]         = useState<DoctorProfileData | null>(null);
+  const [clinic,          setClinic]          = useState<DoctorClinicData | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    getDoctorSettingsAction().then(({ profile: p, clinic: c }) => {
+      setProfile(p);
+      setClinic(c);
+      setLoadingSettings(false);
+    });
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  function getInitials(name: string): string {
+    return name
+      .split(" ")
+      .map((w) => w.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  const doctorInitials = profile?.full_name ? getInitials(profile.full_name) : "DR";
+  const doctorName     = profile?.full_name ? profile.full_name : "Doctor";
+  const doctorSpec     = profile?.specialty ?? "General Practitioner";
 
   const NAV_ITEMS: { id: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { id: "profile",       label: "Profile",       icon: <User className="size-4" />,      desc: "Your public profile" },
@@ -49,7 +88,10 @@ export default function SettingsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" style={{ fontFamily: "var(--font-playfair)" }}>
+        <h1
+          className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+          style={{ fontFamily: "var(--font-playfair)" }}
+        >
           Settings
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -66,11 +108,15 @@ export default function SettingsPage() {
             <div className="border-b border-border/60 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#4D9A7F]/10">
-                  <span className="text-sm font-bold text-[#4D9A7F]">JH</span>
+                  {loadingSettings ? (
+                    <Loader2 className="size-4 animate-spin text-[#4D9A7F]" />
+                  ) : (
+                    <span className="text-sm font-bold text-[#4D9A7F]">{doctorInitials}</span>
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">Dr. Jack Harrison</p>
-                  <p className="text-[11px] text-muted-foreground">Family Medicine</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{doctorName}</p>
+                  <p className="text-[11px] text-muted-foreground">{doctorSpec}</p>
                 </div>
               </div>
             </div>
@@ -94,7 +140,9 @@ export default function SettingsPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-none">{item.label}</p>
-                    <p className={`mt-0.5 text-[10px] ${tab === item.id ? "text-[#4D9A7F]/70" : "text-muted-foreground/70"}`}>
+                    <p className={`mt-0.5 text-[10px] ${
+                      tab === item.id ? "text-[#4D9A7F]/70" : "text-muted-foreground/70"
+                    }`}>
                       {item.desc}
                     </p>
                   </div>
@@ -104,7 +152,10 @@ export default function SettingsPage() {
 
             {/* Sign out */}
             <div className="border-t border-border/60 p-2">
-              <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-vault-negative transition-colors hover:bg-vault-negative-light">
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-vault-negative transition-colors hover:bg-vault-negative-light"
+              >
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-vault-negative-light">
                   <LogOut className="size-3.5" />
                 </span>
@@ -116,8 +167,8 @@ export default function SettingsPage() {
 
         {/* Panel */}
         <div className="lg:col-span-9">
-          {tab === "profile"       && <ProfileTab />}
-          {tab === "clinic"        && <ClinicTab />}
+          {tab === "profile"       && <ProfileTab      initialData={profile} onSaved={(p) => setProfile(p)} />}
+          {tab === "clinic"        && <ClinicTab        initialData={clinic}  onSaved={(c) => setClinic(c)}  />}
           {tab === "schedule"      && <ScheduleTab />}
           {tab === "notifications" && <NotificationsTab />}
           {tab === "security"      && <SecurityTab />}
@@ -129,20 +180,76 @@ export default function SettingsPage() {
 
 // ─── Profile Tab ───────────────────────────────────────────────
 
-function ProfileTab() {
-  const [editing,  setEditing]  = useState(false);
-  const [saved,    setSaved]    = useState(false);
-  const [resetKey, setResetKey] = useState(0);
+function ProfileTab({
+  initialData,
+  onSaved,
+}: {
+  initialData: DoctorProfileData | null;
+  onSaved: (p: DoctorProfileData) => void;
+}) {
+  const [editing,   setEditing]   = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  function handleSave() {
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 2000);
+  const [form, setForm] = useState<DoctorProfileData>({
+    full_name: "", email: "", phone: null, specialty: null,
+    qualifications: null, license_number: null, bio: null,
+  });
+
+  useEffect(() => {
+    if (initialData) setForm(initialData);
+  }, [initialData]);
+
+  function setField<K extends keyof DoctorProfileData>(key: K, value: DoctorProfileData[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleEdit() {
+    setSaveError(null);
+    setEditing(true);
   }
 
   function handleCancel() {
+    if (initialData) setForm(initialData);
     setEditing(false);
-    setResetKey((k) => k + 1);
+    setSaveError(null);
+  }
+
+  function handleSave() {
+    setSaveError(null);
+    startTransition(async () => {
+      const { error } = await saveDoctorProfileAction(form);
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      onSaved(form);
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 2000);
+    });
+  }
+
+  function getInitials(name: string): string {
+    return name
+      .split(" ")
+      .map((w) => w.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "DR";
+  }
+
+  if (initialData === null) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-4 w-32 rounded bg-muted/40" />
+          <div className="h-4 w-48 rounded bg-muted/30" />
+          <div className="h-4 w-40 rounded bg-muted/20" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -160,7 +267,7 @@ function ProfileTab() {
               variant="outline"
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => setEditing(true)}
+              onClick={handleEdit}
             >
               <Pencil className="size-3" />
               Edit
@@ -172,13 +279,15 @@ function ProfileTab() {
           )}
         </div>
 
-        <div key={resetKey} className="p-6 space-y-6">
+        <div className="p-6 space-y-6">
 
           {/* Avatar + credentials */}
           <div className="flex items-start gap-5">
             <div className="relative shrink-0">
               <div className="flex size-20 items-center justify-center rounded-2xl bg-[#4D9A7F]/10 ring-1 ring-[#4D9A7F]/20">
-                <span className="text-2xl font-bold text-[#4D9A7F]">JH</span>
+                <span className="text-2xl font-bold text-[#4D9A7F]">
+                  {getInitials(form.full_name || "Doctor")}
+                </span>
               </div>
               {editing && (
                 <button className="absolute -bottom-1.5 -right-1.5 flex size-7 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted/60">
@@ -187,50 +296,97 @@ function ProfileTab() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-semibold text-foreground">Dr. Jack Harrison</p>
+              <p className="text-base font-semibold text-foreground">
+                {form.full_name || "—"}
+              </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 <span className="flex items-center gap-1 rounded-full bg-[#4D9A7F]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[#4D9A7F]">
                   <Stethoscope className="size-2.5" />
-                  Family Medicine
+                  {form.specialty ?? "—"}
                 </span>
-                <span className="flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  CCFP Certified
-                </span>
-                <span className="flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  GMC #1234567
-                </span>
+                {form.qualifications && (
+                  <span className="flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {form.qualifications}
+                  </span>
+                )}
+                {form.license_number && (
+                  <span className="flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    License #{form.license_number}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           {/* Personal details */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Personal Details</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Personal Details
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name"         defaultValue="Dr. Jack Harrison"  disabled={!editing} />
-              <Field label="Specialty"         defaultValue="Family Medicine"     disabled={!editing} />
-              <Field label="Qualifications"    defaultValue="MBBS, MRCGP, CCFP"  disabled={!editing} />
-              <Field label="GMC / License No." defaultValue="1234567"            disabled={!editing} />
+              <Field
+                label="Full name"
+                value={form.full_name}
+                onChange={(v) => setField("full_name", v)}
+                disabled={!editing}
+              />
+              <Field
+                label="Specialty"
+                value={form.specialty ?? ""}
+                onChange={(v) => setField("specialty", v || null)}
+                disabled={!editing}
+              />
+              <Field
+                label="Qualifications"
+                value={form.qualifications ?? ""}
+                onChange={(v) => setField("qualifications", v || null)}
+                disabled={!editing}
+              />
+              <Field
+                label="GMC / License No."
+                value={form.license_number ?? ""}
+                onChange={(v) => setField("license_number", v || null)}
+                disabled={!editing}
+              />
             </div>
           </div>
 
           {/* Contact */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Contact</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Contact
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldIcon label="Email" defaultValue="dr.harrison@healthluma.com" type="email" icon={<Mail className="size-3.5" />} disabled={!editing} />
-              <FieldIcon label="Phone" defaultValue="+44 20 7946 0123"           icon={<Phone className="size-3.5" />}            disabled={!editing} />
+              <FieldIcon
+                label="Email"
+                value={form.email}
+                onChange={(v) => setField("email", v)}
+                type="email"
+                icon={<Mail className="size-3.5" />}
+                disabled={!editing}
+              />
+              <FieldIcon
+                label="Phone"
+                value={form.phone ?? ""}
+                onChange={(v) => setField("phone", v || null)}
+                icon={<Phone className="size-3.5" />}
+                disabled={!editing}
+              />
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Short Bio</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Short Bio
+            </p>
             <textarea
               rows={3}
               disabled={!editing}
-              defaultValue="Dr. Harrison is a fully registered GP with 12 years of experience in family medicine, chronic disease management, and preventive care."
-              className={`w-full resize-none rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
+              value={form.bio ?? ""}
+              onChange={(e) => setField("bio", e.target.value || null)}
+              placeholder="Write a short professional bio…"
+              className={`w-full resize-none rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all placeholder:text-muted-foreground/40 ${
                 !editing
                   ? "border-transparent bg-transparent cursor-default"
                   : "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
@@ -238,18 +394,28 @@ function ProfileTab() {
             />
           </div>
 
-          {/* Footer actions — only visible when editing */}
+          {/* Footer actions */}
           {editing && (
-            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={handleCancel}
-              >
-                Discard
-              </Button>
-              <SaveButton saved={saved} onClick={handleSave} />
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              {saveError && (
+                <p className="text-xs text-vault-negative">{saveError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={handleCancel}
+                  disabled={isPending}
+                >
+                  Discard
+                </Button>
+                <SaveButton
+                  saved={saved}
+                  onClick={handleSave}
+                  label={isPending ? "Saving…" : "Save changes"}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -260,20 +426,59 @@ function ProfileTab() {
 
 // ─── Clinic Tab ────────────────────────────────────────────────
 
-function ClinicTab() {
-  const [editing,  setEditing]  = useState(false);
-  const [saved,    setSaved]    = useState(false);
-  const [resetKey, setResetKey] = useState(0);
+function ClinicTab({
+  initialData,
+  onSaved,
+}: {
+  initialData: DoctorClinicData | null;
+  onSaved: (c: DoctorClinicData) => void;
+}) {
+  const [editing,   setEditing]   = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  function handleSave() {
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 2000);
+  const defaultForm: DoctorClinicData = {
+    clinic_name: null, clinic_phone: null, clinic_address: null,
+    clinic_city: null, clinic_postcode: null, clinic_website: null,
+    default_slot_mins: 30, buffer_mins: 5,
+    same_day_open_time: "08:00", max_advance_weeks: 4,
+  };
+
+  const [form, setForm] = useState<DoctorClinicData>(defaultForm);
+
+  useEffect(() => {
+    if (initialData) setForm(initialData);
+  }, [initialData]);
+
+  function setField<K extends keyof DoctorClinicData>(key: K, value: DoctorClinicData[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleEdit() {
+    setSaveError(null);
+    setEditing(true);
   }
 
   function handleCancel() {
+    if (initialData) setForm(initialData);
     setEditing(false);
-    setResetKey((k) => k + 1);
+    setSaveError(null);
+  }
+
+  function handleSave() {
+    setSaveError(null);
+    startTransition(async () => {
+      const { error } = await saveDoctorClinicAction(form);
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      onSaved(form);
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 2000);
+    });
   }
 
   const selectCls = (isEditing: boolean) =>
@@ -282,6 +487,18 @@ function ClinicTab() {
         ? "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
         : "border-transparent bg-transparent cursor-default appearance-none"
     }`;
+
+  if (initialData === null) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-4 w-32 rounded bg-muted/40" />
+          <div className="h-4 w-48 rounded bg-muted/30" />
+          <div className="h-4 w-40 rounded bg-muted/20" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -298,7 +515,7 @@ function ClinicTab() {
               variant="outline"
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => setEditing(true)}
+              onClick={handleEdit}
             >
               <Pencil className="size-3" />
               Edit
@@ -310,50 +527,104 @@ function ClinicTab() {
           )}
         </div>
 
-        <div key={resetKey} className="space-y-6 p-6">
+        <div className="space-y-6 p-6">
 
           {/* Clinic identity */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Identity</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Identity
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Clinic name" defaultValue="HealthLuma Clinic"  disabled={!editing} />
-              <FieldIcon label="Phone"   defaultValue="+44 20 7946 0100"   icon={<Phone className="size-3.5" />} disabled={!editing} />
+              <Field
+                label="Clinic name"
+                value={form.clinic_name ?? ""}
+                onChange={(v) => setField("clinic_name", v || null)}
+                disabled={!editing}
+              />
+              <FieldIcon
+                label="Phone"
+                value={form.clinic_phone ?? ""}
+                onChange={(v) => setField("clinic_phone", v || null)}
+                icon={<Phone className="size-3.5" />}
+                disabled={!editing}
+              />
             </div>
           </div>
 
           {/* Address */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Address</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Address
+            </p>
             <div className="grid gap-4">
-              <FieldIcon label="Address"  defaultValue="Suite 204, 84 Harley Street" icon={<MapPin className="size-3.5" />} disabled={!editing} />
+              <FieldIcon
+                label="Address"
+                value={form.clinic_address ?? ""}
+                onChange={(v) => setField("clinic_address", v || null)}
+                icon={<MapPin className="size-3.5" />}
+                disabled={!editing}
+              />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="City"     defaultValue="London"  disabled={!editing} />
-                <Field label="Postcode" defaultValue="W1G 7HW" disabled={!editing} />
+                <Field
+                  label="City"
+                  value={form.clinic_city ?? ""}
+                  onChange={(v) => setField("clinic_city", v || null)}
+                  disabled={!editing}
+                />
+                <Field
+                  label="Postcode"
+                  value={form.clinic_postcode ?? ""}
+                  onChange={(v) => setField("clinic_postcode", v || null)}
+                  disabled={!editing}
+                />
               </div>
-              <FieldIcon label="Website" defaultValue="https://healthluma.com" icon={<Globe className="size-3.5" />} disabled={!editing} />
+              <FieldIcon
+                label="Website"
+                value={form.clinic_website ?? ""}
+                onChange={(v) => setField("clinic_website", v || null)}
+                icon={<Globe className="size-3.5" />}
+                disabled={!editing}
+              />
             </div>
           </div>
 
           {/* Appointment settings */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Appointment Settings</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Appointment Settings
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Default slot duration</label>
-                <select disabled={!editing} defaultValue="30 minutes" className={selectCls(editing)}>
-                  <option>15 minutes</option>
-                  <option>30 minutes</option>
-                  <option>45 minutes</option>
-                  <option>60 minutes</option>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Default slot duration
+                </label>
+                <select
+                  disabled={!editing}
+                  value={String(form.default_slot_mins)}
+                  onChange={(e) => setField("default_slot_mins", Number(e.target.value))}
+                  className={selectCls(editing)}
+                >
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Buffer between slots</label>
-                <select disabled={!editing} defaultValue="5 minutes" className={selectCls(editing)}>
-                  <option>None</option>
-                  <option>5 minutes</option>
-                  <option>10 minutes</option>
-                  <option>15 minutes</option>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Buffer between slots
+                </label>
+                <select
+                  disabled={!editing}
+                  value={String(form.buffer_mins)}
+                  onChange={(e) => setField("buffer_mins", Number(e.target.value))}
+                  className={selectCls(editing)}
+                >
+                  <option value="0">None</option>
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
                 </select>
               </div>
             </div>
@@ -361,14 +632,19 @@ function ClinicTab() {
 
           {/* Booking window */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Booking Window</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Booking Window
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Same-day booking opens</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Same-day booking opens
+                </label>
                 <input
                   type="time"
                   disabled={!editing}
-                  defaultValue="08:00"
+                  value={form.same_day_open_time}
+                  onChange={(e) => setField("same_day_open_time", e.target.value)}
                   className={`w-full rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
                     editing
                       ? "border-border bg-muted/20 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20"
@@ -377,12 +653,19 @@ function ClinicTab() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Max advance booking</label>
-                <select disabled={!editing} defaultValue="4 weeks" className={selectCls(editing)}>
-                  <option>2 weeks</option>
-                  <option>4 weeks</option>
-                  <option>8 weeks</option>
-                  <option>12 weeks</option>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Max advance booking
+                </label>
+                <select
+                  disabled={!editing}
+                  value={String(form.max_advance_weeks)}
+                  onChange={(e) => setField("max_advance_weeks", Number(e.target.value))}
+                  className={selectCls(editing)}
+                >
+                  <option value="2">2 weeks</option>
+                  <option value="4">4 weeks</option>
+                  <option value="8">8 weeks</option>
+                  <option value="12">12 weeks</option>
                 </select>
               </div>
             </div>
@@ -392,16 +675,26 @@ function ClinicTab() {
           </div>
 
           {editing && (
-            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={handleCancel}
-              >
-                Discard
-              </Button>
-              <SaveButton saved={saved} onClick={handleSave} />
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              {saveError && (
+                <p className="text-xs text-vault-negative">{saveError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={handleCancel}
+                  disabled={isPending}
+                >
+                  Discard
+                </Button>
+                <SaveButton
+                  saved={saved}
+                  onClick={handleSave}
+                  label={isPending ? "Saving…" : "Save changes"}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -414,7 +707,6 @@ function ClinicTab() {
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-// DB uses 0=Sun, 1=Mon … 6=Sat (JS Date.getDay() convention)
 const DAY_TO_DOW: Record<string, number> = {
   Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
   Thursday: 4, Friday: 5, Saturday: 6,
@@ -443,7 +735,6 @@ function ScheduleTab() {
   const [saved,     setSaved]     = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // ── Load real schedule from DB on mount ──
   useEffect(() => {
     getDoctorScheduleAction().then((rows: ScheduleRow[]) => {
       if (rows.length === 0) { setLoading(false); return; }
@@ -452,7 +743,7 @@ function ScheduleTab() {
         const name = DOW_TO_DAY[row.day_of_week];
         if (name) {
           schedule[name] = {
-            open:    row.start_time.slice(0, 5), // "09:00:00" → "09:00"
+            open:    row.start_time.slice(0, 5),
             close:   row.end_time.slice(0, 5),
             enabled: row.is_active,
           };
@@ -464,10 +755,10 @@ function ScheduleTab() {
     });
   }, []);
 
-  const toggle   = (day: string) =>
+  const toggle  = (day: string) =>
     setDays((prev) => ({ ...prev, [day]: { ...prev[day], enabled: !prev[day].enabled } }));
 
-  const setTime  = (day: string, field: "open" | "close", val: string) =>
+  const setTime = (day: string, field: "open" | "close", val: string) =>
     setDays((prev) => ({ ...prev, [day]: { ...prev[day], [field]: val } }));
 
   function handleEdit() {
@@ -556,7 +847,6 @@ function ScheduleTab() {
                 config.enabled ? "" : "opacity-60"
               } ${isWeekend && !config.enabled ? "bg-muted/10" : ""}`}
             >
-              {/* Toggle */}
               <button
                 onClick={() => editing && toggle(day)}
                 disabled={!editing}
@@ -568,13 +858,9 @@ function ScheduleTab() {
                   config.enabled ? "translate-x-4" : "translate-x-0.5"
                 }`} />
               </button>
-
-              {/* Day label */}
               <span className={`w-24 text-sm font-medium ${config.enabled ? "text-foreground" : "text-muted-foreground"}`}>
                 {day}
               </span>
-
-              {/* Time inputs — controlled so values are always readable */}
               {config.enabled ? (
                 <div className="flex items-center gap-2">
                   <input
@@ -616,7 +902,11 @@ function ScheduleTab() {
             >
               Discard
             </Button>
-            <SaveButton saved={saved} onClick={handleSave} label={isPending ? "Saving…" : "Save schedule"} />
+            <SaveButton
+              saved={saved}
+              onClick={handleSave}
+              label={isPending ? "Saving…" : "Save schedule"}
+            />
           </div>
         </div>
       )}
@@ -705,12 +995,38 @@ function NotificationsTab() {
 // ─── Security Tab ──────────────────────────────────────────────
 
 function SecurityTab() {
-  const [showNew, setShowNew] = useState(false);
-  const [pwSaved, setPwSaved] = useState(false);
+  const [showNew,    setShowNew]    = useState(false);
+  const [pwSaved,    setPwSaved]    = useState(false);
+  const [pwError,    setPwError]    = useState<string | null>(null);
+  const [currentPw,  setCurrentPw]  = useState("");
+  const [newPw,      setNewPw]      = useState("");
+  const [confirmPw,  setConfirmPw]  = useState("");
+  const [isPending,  startTransition] = useTransition();
 
   function handlePwSave() {
-    setPwSaved(true);
-    setTimeout(() => setPwSaved(false), 2000);
+    setPwError(null);
+    if (newPw !== confirmPw) {
+      setPwError("Passwords do not match.");
+      return;
+    }
+    if (newPw.length < 8) {
+      setPwError("Password must be at least 8 characters.");
+      return;
+    }
+
+    startTransition(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPw });
+      if (error) {
+        setPwError(error.message);
+        return;
+      }
+      setPwSaved(true);
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      setTimeout(() => setPwSaved(false), 2000);
+    });
   }
 
   return (
@@ -720,16 +1036,28 @@ function SecurityTab() {
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border/60 px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">Change Password</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Use a strong password you don&apos;t use elsewhere</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Use a strong password you don&apos;t use elsewhere
+          </p>
         </div>
         <div className="space-y-4 p-6">
-          <Field label="Current password" type="password" placeholder="••••••••" />
+          <Field
+            label="Current password"
+            type="password"
+            placeholder="••••••••"
+            value={currentPw}
+            onChange={(v) => setCurrentPw(v)}
+          />
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New password</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              New password
+            </label>
             <div className="relative">
               <input
                 type={showNew ? "text" : "password"}
                 placeholder="••••••••"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
                 className="w-full rounded-xl border border-border bg-muted/20 px-4 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-[#4D9A7F]/50 focus:outline-none focus:ring-2 focus:ring-[#4D9A7F]/20 transition-all"
               />
               <button
@@ -744,9 +1072,22 @@ function SecurityTab() {
               Minimum 8 characters — include letters, numbers, and a symbol.
             </p>
           </div>
-          <Field label="Confirm new password" type="password" placeholder="••••••••" />
+          <Field
+            label="Confirm new password"
+            type="password"
+            placeholder="••••••••"
+            value={confirmPw}
+            onChange={(v) => setConfirmPw(v)}
+          />
+          {pwError && (
+            <p className="text-xs text-vault-negative">{pwError}</p>
+          )}
           <div className="flex justify-end border-t border-border/60 pt-4">
-            <SaveButton saved={pwSaved} onClick={handlePwSave} label="Update password" />
+            <SaveButton
+              saved={pwSaved}
+              onClick={handlePwSave}
+              label={isPending ? "Updating…" : "Update password"}
+            />
           </div>
         </div>
       </div>
@@ -755,7 +1096,9 @@ function SecurityTab() {
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border/60 px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">Active Sessions</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Devices currently signed in to your account</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Devices currently signed in to your account
+          </p>
         </div>
         <div className="divide-y divide-border/40">
           {[
@@ -777,7 +1120,11 @@ function SecurityTab() {
                   Current
                 </span>
               ) : (
-                <Button variant="outline" size="sm" className="h-7 shrink-0 text-xs text-vault-negative hover:bg-vault-negative-light hover:border-vault-negative/20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 text-xs text-vault-negative hover:bg-vault-negative-light hover:border-vault-negative/20"
+                >
                   Sign out
                 </Button>
               )}
@@ -794,9 +1141,14 @@ function SecurityTab() {
             <div>
               <h3 className="text-sm font-semibold text-vault-negative">Danger Zone</h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Deleting your account is permanent. All clinic data, patient records, and billing history will be removed. Contact support before proceeding.
+                Deleting your account is permanent. All clinic data, patient records, and billing history
+                will be removed. Contact support before proceeding.
               </p>
-              <Button variant="outline" size="sm" className="mt-3 h-7 border-vault-negative/30 text-xs text-vault-negative hover:bg-vault-negative-light">
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-7 border-vault-negative/30 text-xs text-vault-negative hover:bg-vault-negative-light"
+              >
                 Request account deletion
               </Button>
             </div>
@@ -811,23 +1163,29 @@ function SecurityTab() {
 
 function Field({
   label,
+  value,
   defaultValue = "",
+  onChange,
   placeholder,
   type = "text",
   disabled = false,
 }: {
-  label: string;
+  label:         string;
+  value?:        string;
   defaultValue?: string;
-  placeholder?: string;
-  type?: string;
-  disabled?: boolean;
+  onChange?:     (v: string) => void;
+  placeholder?:  string;
+  type?:         string;
+  disabled?:     boolean;
 }) {
   return (
     <div>
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
       <input
         type={type}
-        defaultValue={defaultValue}
+        value={value !== undefined ? value : undefined}
+        defaultValue={value !== undefined ? undefined : defaultValue}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         placeholder={placeholder}
         disabled={disabled}
         className={`w-full rounded-xl border px-4 py-2.5 text-sm text-foreground transition-all ${
@@ -842,18 +1200,22 @@ function Field({
 
 function FieldIcon({
   label,
+  value,
   defaultValue = "",
+  onChange,
   placeholder,
   type = "text",
   icon,
   disabled = false,
 }: {
-  label: string;
+  label:         string;
+  value?:        string;
   defaultValue?: string;
-  placeholder?: string;
-  type?: string;
-  icon: React.ReactNode;
-  disabled?: boolean;
+  onChange?:     (v: string) => void;
+  placeholder?:  string;
+  type?:         string;
+  icon:          React.ReactNode;
+  disabled?:     boolean;
 }) {
   return (
     <div>
@@ -866,7 +1228,9 @@ function FieldIcon({
         </span>
         <input
           type={type}
-          defaultValue={defaultValue}
+          value={value !== undefined ? value : undefined}
+          defaultValue={value !== undefined ? undefined : defaultValue}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full rounded-xl border py-2.5 pl-9 pr-4 text-sm text-foreground transition-all ${
@@ -885,9 +1249,9 @@ function SaveButton({
   onClick,
   label = "Save changes",
 }: {
-  saved: boolean;
-  onClick: () => void;
-  label?: string;
+  saved:    boolean;
+  onClick:  () => void;
+  label?:   string;
 }) {
   return (
     <Button

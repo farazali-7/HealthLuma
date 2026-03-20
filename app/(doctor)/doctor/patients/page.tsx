@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import {
   Search,
   Plus,
@@ -12,91 +12,170 @@ import {
   Send,
   CheckCircle2,
   XCircle,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getPatientListAction,
+  getPatientDetailAction,
+  savePatientNoteAction,
+  type PatientSummary,
+  type PatientDetail,
+} from "./actions";
 
-// ─── Data ──────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────
 
-type PatientStatus = "active" | "inactive" | "new";
-
-interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  gender: string;
-  avatar: string;
-  dob: string;
-  phone: string;
-  conditions: string[];
-  lastVisit: string;
-  nextAppt: string | null;
-  prescriptions: number;
-  status: PatientStatus;
+function computeAge(dob: string | null): number | null {
+  if (!dob) return null;
+  const birth = new Date(dob + "T12:00:00Z");
+  const today = new Date();
+  let age = today.getUTCFullYear() - birth.getUTCFullYear();
+  const m = today.getUTCMonth() - birth.getUTCMonth();
+  if (m < 0 || (m === 0 && today.getUTCDate() < birth.getUTCDate())) age--;
+  return age;
 }
 
-const PATIENTS: Patient[] = [
-  { id: "1",  name: "Aisha Malik",   age: 34, gender: "F", avatar: "AM", dob: "Mar 12, 1991", phone: "+44 7700 123456", conditions: ["Hypertension"],          lastVisit: "Mar 10, 2026", nextAppt: "Mar 15, 2026", prescriptions: 2, status: "active"   },
-  { id: "2",  name: "Bilal Hassan",  age: 52, gender: "M", avatar: "BH", dob: "Jun 3, 1973",  phone: "+44 7700 234567", conditions: ["Type 2 Diabetes"],       lastVisit: "Mar 10, 2026", nextAppt: null,           prescriptions: 3, status: "active"   },
-  { id: "3",  name: "Sara Qureshi",  age: 28, gender: "F", avatar: "SQ", dob: "Jan 18, 1998", phone: "+44 7700 345678", conditions: ["Fatigue"],               lastVisit: "Mar 10, 2026", nextAppt: null,           prescriptions: 1, status: "new"      },
-  { id: "4",  name: "Omar Farooq",   age: 45, gender: "M", avatar: "OF", dob: "Sep 22, 1980", phone: "+44 7700 456789", conditions: ["General Wellness"],      lastVisit: "Oct 14, 2025", nextAppt: "Mar 10, 2026", prescriptions: 0, status: "active"   },
-  { id: "5",  name: "Zainab Raza",   age: 61, gender: "F", avatar: "ZR", dob: "Feb 7, 1965",  phone: "+44 7700 567890", conditions: ["Arthritis", "Anemia"],   lastVisit: "Mar 10, 2026", nextAppt: "Mar 10, 2026", prescriptions: 2, status: "active"   },
-  { id: "6",  name: "Khaled Noor",   age: 39, gender: "M", avatar: "KN", dob: "Apr 30, 1986", phone: "+44 7700 678901", conditions: ["Vitamin D Deficiency"],  lastVisit: "Feb 28, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active"   },
-  { id: "7",  name: "Fatima Shah",   age: 27, gender: "F", avatar: "FS", dob: "Nov 14, 1998", phone: "+44 7700 789012", conditions: ["Hypothyroidism"],        lastVisit: "Jan 20, 2026", nextAppt: "Mar 11, 2026", prescriptions: 1, status: "active"   },
-  { id: "8",  name: "Ahmed Rehman",  age: 66, gender: "M", avatar: "AR", dob: "May 5, 1959",  phone: "+44 7700 890123", conditions: ["Cardiac", "HTN"],        lastVisit: "Feb 15, 2026", nextAppt: "Mar 11, 2026", prescriptions: 4, status: "active"   },
-  { id: "9",  name: "Nadia Jamil",   age: 43, gender: "F", avatar: "NJ", dob: "Jul 8, 1982",  phone: "+44 7700 901234", conditions: ["Migraine"],              lastVisit: "Mar 8, 2026",  nextAppt: null,           prescriptions: 1, status: "active"   },
-  { id: "10", name: "Tariq Mehmood", age: 58, gender: "M", avatar: "TM", dob: "Dec 1, 1967",  phone: "+44 7700 012345", conditions: ["Hypertension", "CKD"],   lastVisit: "Feb 10, 2026", nextAppt: null,           prescriptions: 3, status: "inactive" },
-];
-
-// Per-patient appointment history for the profile panel
-const PATIENT_HISTORY: Record<string, { date: string; type: string; status: "completed" | "cancelled" }[]> = {
-  "1": [
-    { date: "Mar 10, 2026", type: "Follow-up",      status: "completed" },
-    { date: "Feb 10, 2026", type: "Consultation",   status: "completed" },
-    { date: "Oct 14, 2025", type: "Annual Checkup", status: "completed" },
-  ],
-  "2": [
-    { date: "Mar 10, 2026", type: "Consultation",   status: "completed" },
-    { date: "Jan 22, 2026", type: "Follow-up",      status: "completed" },
-  ],
+const TYPE_LABELS: Record<string, string> = {
+  "follow-up":           "Follow-up",
+  consultation:          "Consultation",
+  checkup:               "Checkup",
+  "prescription-review": "Prescription Review",
 };
 
-// Per-patient prescription list
-const PATIENT_RX: Record<string, string[]> = {
-  "1": ["Amlodipine 5 mg — Once daily", "Lisinopril 10 mg — Once daily"],
-  "2": ["Metformin 1000 mg — Twice daily", "Atorvastatin 20 mg — Once nightly", "Bisoprolol 5 mg — Once daily"],
-  "5": ["Naproxen 500 mg — Twice daily PRN", "Ferrous sulfate 325 mg — Once daily"],
-  "6": ["Vitamin D3 50,000 IU — Once weekly"],
-  "7": ["Levothyroxine 50 mcg — Once daily AM"],
-  "8": ["Bisoprolol 5 mg — Once daily", "Lisinopril 10 mg — Once daily", "Atorvastatin 20 mg — Nightly", "Aspirin 81 mg — Once daily"],
-  "9": ["Sumatriptan 50 mg — As needed"],
-  "10": ["Lisinopril 10 mg — Once daily", "Amlodipine 5 mg — Once daily", "Furosemide 20 mg — Once daily"],
-};
+function fmtDate(dateStr: string): string {
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function fmtTime(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  const hours = Math.floor(mins / 60);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
 
 type FilterOption = "All" | "Active" | "New" | "Inactive";
+
+// ─── Skeletons ────────────────────────────────────────────────
+
+function PatientListSkeleton() {
+  return (
+    <div className="divide-y divide-border/40">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 px-4 py-3.5"
+          style={{ opacity: 1 - i * 0.15 }}
+        >
+          <div className="size-10 rounded-xl bg-muted/40 animate-pulse shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-28 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-20 rounded bg-muted/30 animate-pulse" />
+            <div className="h-2.5 w-16 rounded bg-muted/20 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionSkeleton() {
+  return (
+    <div className="divide-y divide-border/40">
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 px-5 py-3"
+          style={{ opacity: 1 - i * 0.4 }}
+        >
+          <div className="size-6 rounded-full bg-muted/40 animate-pulse shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-40 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-24 rounded bg-muted/30 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Page ──────────────────────────────────────────────────────
 
 export default function PatientsPage() {
-  const [filter,   setFilter]   = useState<FilterOption>("All");
-  const [search,   setSearch]   = useState("");
-  const [selected, setSelected] = useState<Patient | null>(null);
-  const [noteText, setNoteText] = useState("");
-  const [notes, setNotes] = useState<Record<string, string[]>>({
-    "1": ["Mar 10, 2026 — BP stable at 126/82. Continue Amlodipine 5 mg. Lifestyle modifications discussed."],
-    "2": ["Mar 10, 2026 — Metformin adjusted to 1000 mg twice daily. HbA1c down to 6.8%. Follow up in 3 months."],
-  });
+  const [patients,      setPatients]      = useState<PatientSummary[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [filter,        setFilter]        = useState<FilterOption>("All");
+  const [search,        setSearch]        = useState("");
+  const [selected,      setSelected]      = useState<PatientSummary | null>(null);
+  const [detail,        setDetail]        = useState<PatientDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [noteText,      setNoteText]      = useState("");
+  const [noteError,     setNoteError]     = useState<string | null>(null);
+  const [noteSaving,    startNoteTransition] = useTransition();
 
-  const submitNote = () => {
+  // ── Load patient list on mount ──
+  useEffect(() => {
+    getPatientListAction().then((data) => {
+      setPatients(data);
+      setLoading(false);
+    });
+  }, []);
+
+  // ── Load patient detail when selection changes ──
+  const loadDetail = useCallback((patient: PatientSummary) => {
+    setDetail(null);
+    setDetailLoading(true);
+    getPatientDetailAction(patient.id).then((d) => {
+      setDetail(d);
+      setDetailLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (selected) {
+      loadDetail(selected);
+    } else {
+      setDetail(null);
+    }
+  }, [selected, loadDetail]);
+
+  // ── Note submission ──
+  function submitNote() {
     if (!noteText.trim() || !selected) return;
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    setNotes((prev) => ({
-      ...prev,
-      [selected.id]: [`${today} — ${noteText.trim()}`, ...(prev[selected.id] ?? [])],
-    }));
-    setNoteText("");
-  };
+    setNoteError(null);
+    startNoteTransition(async () => {
+      const { error } = await savePatientNoteAction(selected.id, noteText);
+      if (error) {
+        setNoteError(error);
+        return;
+      }
+      setNoteText("");
+      // Refresh detail to show new note
+      const refreshed = await getPatientDetailAction(selected.id);
+      setDetail(refreshed);
+    });
+  }
 
-  const filtered = PATIENTS.filter((p) => {
+  // ── Filter + search ──
+  const filtered = patients.filter((p) => {
     const matchFilter =
       filter === "All"      ? true :
       filter === "Active"   ? p.status === "active" :
@@ -104,8 +183,8 @@ export default function PatientsPage() {
       p.status === "inactive";
 
     const matchSearch = search
-      ? p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.conditions.some((c) => c.toLowerCase().includes(search.toLowerCase()))
+      ? p.full_name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.conditions[0] ?? "").toLowerCase().includes(search.toLowerCase())
       : true;
 
     return matchFilter && matchSearch;
@@ -122,7 +201,7 @@ export default function PatientsPage() {
           <div className="mb-3 flex items-center justify-between">
             <h1 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
               Patients
-              <span className="ml-2 text-sm font-normal text-muted-foreground">({PATIENTS.length})</span>
+              <span className="ml-2 text-sm font-normal text-muted-foreground">({patients.length})</span>
             </h1>
             <Button size="sm" className="h-8 gap-1.5 text-xs" style={{ background: "#4D9A7F", color: "white" }}>
               <Plus className="size-3.5" />
@@ -159,41 +238,60 @@ export default function PatientsPage() {
         </div>
 
         {/* List */}
-        <div className="flex-1 divide-y divide-border/40 overflow-y-auto">
-          {filtered.map((patient) => (
-            <button
-              key={patient.id}
-              onClick={() => setSelected(patient)}
-              className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/30 ${
-                selected?.id === patient.id ? "border-r-2 border-[#4D9A7F] bg-[#4D9A7F]/6" : ""
-              }`}
-            >
-              <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                patient.status === "new"      ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]" :
-                patient.status === "inactive" ? "bg-muted/50 text-muted-foreground" :
-                "border border-border bg-card text-foreground"
-              }`}>
-                {patient.avatar}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-medium text-foreground">{patient.name}</p>
-                  {patient.status === "new" && (
-                    <span className="shrink-0 rounded-full bg-[#4D9A7F]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#4D9A7F]">NEW</span>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {patient.age}y · {patient.gender} · {patient.conditions[0]}
-                  {patient.conditions.length > 1 ? ` +${patient.conditions.length - 1}` : ""}
-                </p>
-                <p className="text-[10px] text-muted-foreground/60">Last: {patient.lastVisit}</p>
-              </div>
-            </button>
-          ))}
-
-          {filtered.length === 0 && (
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <PatientListSkeleton />
+          ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-muted-foreground">No patients match this filter.</p>
+              <p className="text-sm text-muted-foreground">No patients found.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40">
+              {filtered.map((patient) => {
+                const age = computeAge(patient.date_of_birth);
+                const primaryCondition = patient.conditions[0] ?? "General";
+                const extraConditions = patient.conditions.length > 1
+                  ? ` +${patient.conditions.length - 1}`
+                  : "";
+
+                return (
+                  <button
+                    key={patient.id}
+                    onClick={() => setSelected(patient)}
+                    className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/30 ${
+                      selected?.id === patient.id
+                        ? "border-r-2 border-[#4D9A7F] bg-[#4D9A7F]/6"
+                        : ""
+                    }`}
+                  >
+                    <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                      patient.status === "new"
+                        ? "border border-[#4D9A7F]/30 bg-[#4D9A7F]/15 text-[#4D9A7F]"
+                        : patient.status === "inactive"
+                        ? "bg-muted/50 text-muted-foreground"
+                        : "border border-border bg-card text-foreground"
+                    }`}>
+                      {patient.initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{patient.full_name}</p>
+                        {patient.status === "new" && (
+                          <span className="shrink-0 rounded-full bg-[#4D9A7F]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#4D9A7F]">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {age !== null ? `${age}y · ` : ""}{primaryCondition}{extraConditions}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/60">
+                        Last: {patient.last_visit ? fmtDate(patient.last_visit) : "No visits"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -214,18 +312,28 @@ export default function PatientsPage() {
           {/* Profile header */}
           <div className="flex items-start gap-5">
             <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted/40 text-xl font-bold text-foreground">
-              {selected.avatar}
+              {selected.initials}
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>
-                    {selected.name}
+                  <h2
+                    className="text-xl font-semibold text-foreground"
+                    style={{ fontFamily: "var(--font-playfair)" }}
+                  >
+                    {selected.full_name}
                   </h2>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {selected.age} yrs · {selected.gender === "M" ? "Male" : "Female"} · DOB: {selected.dob}
+                    {computeAge(selected.date_of_birth) !== null
+                      ? `${computeAge(selected.date_of_birth)} yrs · `
+                      : ""}
+                    {selected.date_of_birth
+                      ? `DOB: ${fmtDate(selected.date_of_birth)}`
+                      : "DOB: —"}
                   </p>
-                  <p className="text-sm text-muted-foreground">{selected.phone}</p>
+                  {selected.phone && (
+                    <p className="text-sm text-muted-foreground">{selected.phone}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
@@ -238,13 +346,18 @@ export default function PatientsPage() {
                   </Button>
                 </div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {selected.conditions.map((c) => (
-                  <span key={c} className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#4D9A7F]">
-                    {c}
-                  </span>
-                ))}
-              </div>
+              {selected.conditions.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selected.conditions.map((c) => (
+                    <span
+                      key={c}
+                      className="rounded-full bg-[#4D9A7F]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#4D9A7F]"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -253,19 +366,27 @@ export default function PatientsPage() {
             <div className="flex items-center gap-2">
               <Clock className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Last visit</span>
-              <span className="text-xs font-semibold text-foreground">{selected.lastVisit}</span>
+              <span className="text-xs font-semibold text-foreground">
+                {selected.last_visit ? fmtDate(selected.last_visit) : "No visits"}
+              </span>
             </div>
             <span className="hidden text-border sm:block">·</span>
             <div className="flex items-center gap-2">
               <Calendar className="size-3.5 shrink-0 text-[#4D9A7F]" />
               <span className="text-xs text-muted-foreground">Next appt</span>
-              <span className="text-xs font-semibold text-foreground">{selected.nextAppt ?? "Not scheduled"}</span>
+              <span className="text-xs font-semibold text-foreground">
+                {selected.next_appointment ? fmtDate(selected.next_appointment) : "Not scheduled"}
+              </span>
             </div>
             <span className="hidden text-border sm:block">·</span>
             <div className="flex items-center gap-2">
               <Pill className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground">{selected.prescriptions}</span>
-              <span className="text-xs text-muted-foreground">active prescription{selected.prescriptions !== 1 ? "s" : ""}</span>
+              <span className="text-xs font-semibold text-foreground">
+                {selected.active_prescription_count}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                active prescription{selected.active_prescription_count !== 1 ? "s" : ""}
+              </span>
             </div>
           </div>
 
@@ -276,28 +397,53 @@ export default function PatientsPage() {
               <h3 className="text-sm font-semibold text-foreground">Recent Appointments</h3>
             </div>
             <div className="divide-y divide-border/40">
-              {(PATIENT_HISTORY[selected.id] ?? []).length > 0 ? (
-                (PATIENT_HISTORY[selected.id] ?? []).map((appt, j) => (
-                  <div key={j} className="flex items-center justify-between px-5 py-3">
+              {detailLoading ? (
+                <SectionSkeleton />
+              ) : (detail?.appointments ?? []).length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground/60">
+                  No visit history recorded.
+                </p>
+              ) : (
+                (detail?.appointments ?? []).map((appt) => (
+                  <div
+                    key={appt.id}
+                    className="flex items-center justify-between px-5 py-3"
+                  >
                     <div>
-                      <p className="text-sm font-medium text-foreground">{appt.type}</p>
-                      <p className="text-[11px] text-muted-foreground">{appt.date}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {TYPE_LABELS[appt.type] ?? appt.type}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {fmtDate(appt.appointment_date)}
+                        {appt.start_time ? ` · ${fmtTime(appt.start_time)}` : ""}
+                      </p>
                     </div>
-                    {appt.status === "completed" ? (
+                    {appt.status === "completed" && (
                       <span className="flex items-center gap-1 rounded-full bg-vault-positive-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-positive">
                         <CheckCircle2 className="size-3" />
                         Completed
                       </span>
-                    ) : (
+                    )}
+                    {appt.status === "cancelled" && (
                       <span className="flex items-center gap-1 rounded-full bg-vault-negative-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-negative">
                         <XCircle className="size-3" />
                         Cancelled
                       </span>
                     )}
+                    {appt.status === "no-show" && (
+                      <span className="flex items-center gap-1 rounded-full bg-vault-warning-light px-2.5 py-0.5 text-[10px] font-semibold text-vault-warning">
+                        <AlertCircle className="size-3" />
+                        No-show
+                      </span>
+                    )}
+                    {appt.status === "upcoming" && (
+                      <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <Clock className="size-3" />
+                        Upcoming
+                      </span>
+                    )}
                   </div>
                 ))
-              ) : (
-                <p className="px-5 py-4 text-sm text-muted-foreground/60">No visit history recorded.</p>
               )}
             </div>
           </div>
@@ -309,17 +455,21 @@ export default function PatientsPage() {
               <h3 className="text-sm font-semibold text-foreground">Active Prescriptions</h3>
             </div>
             <div className="divide-y divide-border/40">
-              {(PATIENT_RX[selected.id] ?? []).length > 0 ? (
-                (PATIENT_RX[selected.id] ?? []).map((item, j) => (
-                  <div key={j} className="flex items-center gap-3 px-5 py-3">
+              {detailLoading ? (
+                <SectionSkeleton />
+              ) : (detail?.prescriptions ?? []).length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground">No active prescriptions.</p>
+              ) : (
+                (detail?.prescriptions ?? []).map((rx) => (
+                  <div key={rx.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#4D9A7F]/10">
                       <Pill className="size-3 text-[#4D9A7F]" />
                     </div>
-                    <p className="text-sm text-foreground">{item}</p>
+                    <p className="text-sm text-foreground">
+                      {rx.medication} {rx.dose} — {rx.frequency}
+                    </p>
                   </div>
                 ))
-              ) : (
-                <p className="px-5 py-4 text-sm text-muted-foreground">No active prescriptions.</p>
               )}
             </div>
           </div>
@@ -346,27 +496,41 @@ export default function PatientsPage() {
                 />
                 <button
                   onClick={submitNote}
-                  disabled={!noteText.trim()}
+                  disabled={!noteText.trim() || noteSaving}
                   className="flex size-10 shrink-0 items-center justify-center self-end rounded-xl bg-[#4D9A7F] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Send className="size-4" />
+                  {noteSaving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
                 </button>
               </div>
+              {noteError && (
+                <p className="mt-1.5 text-[11px] text-vault-negative">{noteError}</p>
+              )}
             </div>
 
             {/* Notes list */}
             <div className="divide-y divide-border/40">
-              {(notes[selected.id] ?? []).length > 0 ? (
-                (notes[selected.id] ?? []).map((item, j) => (
-                  <div key={j} className="flex items-start gap-3 px-5 py-3.5">
+              {detailLoading ? (
+                <SectionSkeleton />
+              ) : (detail?.notes ?? []).length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground/60">No notes yet.</p>
+              ) : (
+                (detail?.notes ?? []).map((note) => (
+                  <div key={note.id} className="flex items-start gap-3 px-5 py-3.5">
                     <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted/40">
                       <Clock className="size-3 text-muted-foreground/60" />
                     </div>
-                    <p className="text-sm text-muted-foreground">{item}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-muted-foreground">{note.content}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground/50">
+                        {relativeTime(note.created_at)}
+                      </p>
+                    </div>
                   </div>
                 ))
-              ) : (
-                <p className="px-5 py-4 text-sm text-muted-foreground/60">No notes yet.</p>
               )}
             </div>
           </div>
@@ -377,7 +541,9 @@ export default function PatientsPage() {
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-muted/30">
               <Search className="size-6 text-muted-foreground/40" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">Select a patient to view their profile</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Select a patient to view their profile
+            </p>
           </div>
         </div>
       )}
