@@ -66,9 +66,9 @@ export default function HeroSection() {
         <div
           style={{
             position: "absolute",
-            top: "220px",
+            top: "130px",
             right: "50px",
-            bottom: "100px",
+            bottom: "150px",
             width: "50%",
             zIndex: 1,
             overflow: "hidden",
