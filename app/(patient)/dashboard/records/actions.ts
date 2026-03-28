@@ -91,15 +91,15 @@ export interface PatientDocument {
   id: string;
   name: string;
   type: DocumentType;
-  file_path: string;   // Storage path: "{patient_id}/{filename}"
+  file_path: string;        // Storage path: "{patient_id}/{filename}"
+  signed_url: string | null; // Short-lived URL (1 h) — generated server-side on fetch
   file_size_bytes: number | null;
   created_at: string;
 }
 
 /**
- * All documents visible to the authenticated patient.
- * Returns the storage path so the client can generate a signed URL
- * inline (avoids N+1 signed-URL generation on the server).
+ * All documents for the authenticated patient with server-side signed URLs.
+ * Signed URLs expire after 1 hour — no public URLs are ever returned.
  * RLS `documents__patient_select_own` scopes rows to auth.uid().
  */
 export async function getPatientDocumentsAction(): Promise<PatientDocument[]> {
@@ -120,11 +120,24 @@ export async function getPatientDocumentsAction(): Promise<PatientDocument[]> {
     return [];
   }
 
-  return (data ?? []).map((d: any) => ({
+  const rows = data ?? [];
+
+  // Generate signed URLs server-side in parallel (1-hour expiry)
+  const signedUrls = await Promise.all(
+    rows.map(async (d: any) => {
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(d.file_url as string, 3600);
+      return signed?.signedUrl ?? null;
+    })
+  );
+
+  return rows.map((d: any, i: number) => ({
     id:              d.id,
     name:            d.name,
     type:            d.type as DocumentType,
-    file_path:       d.file_url,   // column stores storage path
+    file_path:       d.file_url as string,
+    signed_url:      signedUrls[i],
     file_size_bytes: d.file_size_bytes,
     created_at:      d.created_at,
   }));

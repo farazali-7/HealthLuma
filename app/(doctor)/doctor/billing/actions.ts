@@ -123,6 +123,7 @@ export async function getDoctorBillingAction(): Promise<BillingData> {
           full_name
         )
       `)
+      .eq("doctor_id", user.id)
       .gte("created_at", sevenMonthsAgoStr)
       .order("created_at", { ascending: false })
       .limit(50),

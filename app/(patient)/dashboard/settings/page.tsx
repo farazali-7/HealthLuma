@@ -406,13 +406,16 @@ function PersonalInfoCard({
 
     if (upErr) { setSaveErr(upErr.message); setUploading(false); return; }
 
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-    const result = await updateAvatarUrlAction(publicUrl);
-    if (result.error) { setSaveErr(result.error); }
-    else {
-      setAvatarUrl(publicUrl);
-      await onSaved();
-    }
+    // Store the storage path in DB — never a public URL
+    const result = await updateAvatarUrlAction(path);
+    if (result.error) { setSaveErr(result.error); setUploading(false); return; }
+
+    // Generate a signed URL (1 h) for immediate in-page display
+    const { data: signedData } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(path, 3600);
+    setAvatarUrl(signedData?.signedUrl ?? null);
+    await onSaved();
     setUploading(false);
     e.target.value = "";
   };

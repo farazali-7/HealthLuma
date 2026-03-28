@@ -311,12 +311,7 @@ export async function uploadDocument(input: {
 
   if (uploadError) return { data: null, error: uploadError.message };
 
-  // 2. Get public/signed URL
-  const { data: urlData } = supabase.storage
-    .from("documents")
-    .getPublicUrl(filePath);
-
-  // 3. Insert record
+  // 2. Insert record — store the storage path, never a public URL
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("documents")
@@ -326,7 +321,7 @@ export async function uploadDocument(input: {
       uploaded_by:     user!.id,
       name:            input.name,
       type:            input.type,
-      file_url:        urlData.publicUrl,
+      file_url:        filePath,
       file_size_bytes: input.file.size,
     })
     .select()
@@ -334,6 +329,20 @@ export async function uploadDocument(input: {
 
   if (error) return { data: null, error: error.message };
   return { data: data as Document, error: null };
+}
+
+
+/** Generate a short-lived signed URL for a private document (1 hour default). */
+export async function getSignedDocumentUrl(
+  filePath: string,
+  expiresIn = 3600
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage
+    .from("documents")
+    .createSignedUrl(filePath, expiresIn);
+  if (error || !data) return null;
+  return data.signedUrl;
 }
 
 
@@ -503,14 +512,22 @@ export async function getMonthlyMessageCount(
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
+  // Step 1: Fetch conversation IDs owned by this patient (no raw SQL)
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("patient_id", patientId);
+
+  const convIds = (convs ?? []).map((c) => c.id);
+  if (convIds.length === 0) return 0;
+
+  // Step 2: Count user messages in those conversations this month
   const { count, error } = await supabase
     .from("messages")
     .select("id", { count: "exact", head: true })
     .eq("role", "user")
     .gte("created_at", startOfMonth.toISOString())
-    .filter("conversation_id", "in",
-      `(select id from conversations where patient_id = '${patientId}')`
-    );
+    .in("conversation_id", convIds);
 
   if (error) return 0;
   return count ?? 0;
@@ -658,8 +675,9 @@ export async function createPrescription(
 // DOCTOR — BILLING / REVENUE
 // ============================================================
 
-/** Monthly revenue grouped by month (last N months). */
+/** Monthly revenue grouped by month (last N months) — scoped to the given doctor. */
 export async function getDoctorMonthlyRevenue(
+  doctorId: string,
   months = 7
 ): Promise<Array<{ month: string; revenue: number }>> {
   const supabase = await createClient();
@@ -670,6 +688,7 @@ export async function getDoctorMonthlyRevenue(
     .from("payments")
     .select("amount_cents, created_at")
     .eq("status", "paid")
+    .eq("doctor_id", doctorId)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: true });
 

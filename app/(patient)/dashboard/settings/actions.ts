@@ -54,8 +54,19 @@ export async function getSettingsDataAction(): Promise<SettingsProfile | null> {
 
   if (error || !data) return null;
 
+  // avatar_url now stores a storage path. Generate a short-lived signed URL
+  // so the client always receives a usable HTTPS URL, never a storage path.
+  let avatarUrl = (data as any).avatar_url as string | null;
+  if (avatarUrl && !avatarUrl.startsWith("http")) {
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(avatarUrl, 3600);
+    avatarUrl = signed?.signedUrl ?? null;
+  }
+
   return {
     ...(data as any),
+    avatar_url: avatarUrl,
     email: user.email ?? null,
   } as SettingsProfile;
 }

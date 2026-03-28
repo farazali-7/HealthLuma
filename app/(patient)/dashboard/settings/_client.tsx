@@ -312,18 +312,19 @@ function ProfileTab({
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl;
-
-      const result = await updateAvatarUrlAction(publicUrl);
+      // Store the storage path in DB — never a public URL
+      const result = await updateAvatarUrlAction(filePath);
       if (result.error) {
         showFeedback(false, result.error);
-      } else {
-        setAvatarUrl(publicUrl);
-        showFeedback(true, "Photo updated");
+        return;
       }
+
+      // Generate a signed URL (1 h) for immediate in-page display
+      const { data: signedData } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(filePath, 3600);
+      setAvatarUrl(signedData?.signedUrl ?? "");
+      showFeedback(true, "Photo updated");
     } finally {
       setUploadingAvatar(false);
     }
