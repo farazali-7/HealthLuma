@@ -35,8 +35,8 @@ import {
   type PatientRxStatus,
   type PatientDocument,
   type DocumentType,
-  DOC_TYPE_LABELS,
 } from "./actions";
+import { DOC_TYPE_LABELS } from "./constants";
 
 // ─── Status meta ─────────────────────────────────────────────────
 

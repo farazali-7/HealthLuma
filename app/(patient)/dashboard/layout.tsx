@@ -15,16 +15,16 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
-  // Defense in depth: middleware handles this, but also enforce at layout level
-  const { data: profile, error: profileError } = await supabase
+  // Defense in depth: middleware handles this, but also enforce at layout level.
+  // Fall back to JWT app_metadata role if DB is unreachable — avoids redirect loop.
+  const { data: profile } = await supabase
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  // Profile fetch failed — don't silently assume patient role
-  if (profileError || !profile) redirect("/login?error=profile_not_found");
-  if (profile!.role === "doctor") redirect("/doctor");
+  const role = profile?.role ?? (user.app_metadata?.role as string | undefined) ?? "patient";
+  if (role === "doctor") redirect("/doctor");
 
   return (
     <UserProvider user={user} role="patient">

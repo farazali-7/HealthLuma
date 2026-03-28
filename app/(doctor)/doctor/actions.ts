@@ -131,11 +131,13 @@ export async function getDoctorDashboardAction(): Promise<DoctorDashboardData> {
 // ─── Mutations ────────────────────────────────────────────────────
 
 /**
- * Toggle a doctor task between done and not-done.
- * Guards against operating on another doctor's tasks.
+ * Set a doctor task's done state directly.
+ * Client passes the desired new state — eliminates the SELECT round-trip.
+ * RLS + doctor_id guard prevent cross-doctor writes.
  */
 export async function toggleDoctorTaskAction(
-  id: string
+  id: string,
+  newDone: boolean
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing task ID" };
 
@@ -143,19 +145,9 @@ export async function toggleDoctorTaskAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  // Read current state first (needed to compute the toggle)
-  const { data: task } = await supabase
-    .from("doctor_tasks")
-    .select("is_done")
-    .eq("id",        id)
-    .eq("doctor_id", user.id)
-    .maybeSingle();
-
-  if (!task) return { error: "Task not found." };
-
   const { error } = await supabase
     .from("doctor_tasks")
-    .update({ is_done: !task.is_done })
+    .update({ is_done: newDone })
     .eq("id",        id)
     .eq("doctor_id", user.id);
 

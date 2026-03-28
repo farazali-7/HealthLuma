@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { type ReactNode } from "react";
 import {
   Calendar,
@@ -262,19 +261,6 @@ export function DashboardClient({
   const router = useRouter();
   const [selectedAppt, setSelectedAppt] = useState<UpcomingAppt | null>(null);
   const [bookingOpen, setBookingOpen]   = useState(false);
-
-  // ── TEMPORARY: JWT role verification ────────────────────────
-  // Remove this useEffect once you've confirmed app_metadata.role
-  // is present in the browser console. See middleware.ts.
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("[JWT debug] session.user:", session?.user);
-      console.log("[JWT debug] app_metadata:", session?.user?.app_metadata);
-      console.log("[JWT debug] role:", session?.user?.app_metadata?.role);
-    });
-  }, []);
-  // ── END TEMPORARY ────────────────────────────────────────────
 
   const firstName = displayName.split(" ")[0];
   const hour      = new Date().getHours();

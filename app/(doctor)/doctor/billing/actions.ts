@@ -117,16 +117,16 @@ export async function getDoctorBillingAction(): Promise<BillingData> {
         created_at,
         appointment:appointments!payments_appointment_id_fkey (
           type,
-          appointment_date
+          appointment_date,
+          doctor_id
         ),
         patient:users!payments_patient_id_fkey (
           full_name
         )
       `)
-      .eq("doctor_id", user.id)
       .gte("created_at", sevenMonthsAgoStr)
       .order("created_at", { ascending: false })
-      .limit(50),
+      .limit(200),
 
     supabase
       .from("subscriptions")
@@ -167,8 +167,19 @@ export async function getDoctorBillingAction(): Promise<BillingData> {
   for (const k of monthKeys) revenueBuckets.set(k, 0);
 
   // ── Payments ──────────────────────────────────────────────────
-  const payments =
+  // payments table has no doctor_id column — filter via the joined appointment.
+  // Membership payments (no appointment) are excluded from doctor-scoped revenue
+  // until a doctor_id column is added to payments.
+  const allPayments =
     paymentsRes.status === "fulfilled" ? (paymentsRes.value.data ?? []) : [];
+
+  const payments = allPayments.filter((p) => {
+    const appt = p.appointment as { doctor_id?: string } | null;
+    // Keep membership-type payments (no appointment) and appointment payments
+    // that belong to this doctor
+    if ((p.type as string) === "membership") return true;
+    return appt?.doctor_id === user.id;
+  });
 
   let pendingCount     = 0;
   let overdueCount     = 0;

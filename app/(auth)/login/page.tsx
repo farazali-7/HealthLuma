@@ -110,19 +110,10 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
-
-    if (profileError || !profile) {
-      setError("Could not load your profile. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = profile.role === "doctor" ? "/doctor" : "/dashboard";
+    // Role is injected into app_metadata by the JWT hook on sign-in.
+    // No DB query needed — the layouts enforce role protection server-side.
+    const role = data.user.app_metadata?.role as string | undefined;
+    window.location.href = role === "doctor" ? "/doctor" : "/dashboard";
   }
 
   async function handleGoogleLogin() {

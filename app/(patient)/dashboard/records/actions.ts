@@ -72,14 +72,6 @@ export async function getPatientPrescriptionsAction(): Promise<PatientPrescripti
 
 // ─── Documents ────────────────────────────────────────────────────
 
-export const DOC_TYPE_LABELS: Record<string, string> = {
-  "consultation-note":    "Consultation Note",
-  "lab-report":           "Lab Report",
-  "prescription-record":  "Prescription Record",
-  "checkup-summary":      "Checkup Summary",
-  "other":                "Document",
-};
-
 export type DocumentType =
   | "consultation-note"
   | "lab-report"

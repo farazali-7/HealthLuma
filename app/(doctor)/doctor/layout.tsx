@@ -15,15 +15,15 @@ export default async function DoctorLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  // Profile fetch failed — don't silently assume a role
-  if (profileError || !profile) redirect("/login?error=profile_not_found");
-  if (profile!.role !== "doctor") redirect("/dashboard");
+  // Fall back to JWT app_metadata if DB is unreachable — avoids redirect loop.
+  const role = profile?.role ?? (user.app_metadata?.role as string | undefined) ?? "patient";
+  if (role !== "doctor") redirect("/dashboard");
 
   return (
     <UserProvider user={user} role="doctor">

@@ -62,24 +62,24 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ── Authenticated: role-based routing ───────────────────────
-  // Role is injected into app_metadata by the JWT hook
-  // (see supabase/migrations/20260328000002_jwt_role_hook.sql).
-  // Reading from the JWT token — NO database query.
+  // Role is injected into app_metadata by the JWT hook.
+  // IMPORTANT: only enforce cross-route role protection when role is EXPLICITLY
+  // present in the JWT. If absent (hook not yet active / stale token), let the
+  // layout handle role enforcement via DB — avoids middleware ↔ layout loops.
   if (user && (isAuthRoute || isProtected)) {
-    const role = (user.app_metadata?.role as string | undefined) ?? "patient";
+    const role = user.app_metadata?.role as string | undefined;
 
-    // Logged-in user visiting /login or /signup → send to their dashboard
+    // Logged-in user visiting /login or /signup → send to their dashboard.
+    // Default to /dashboard when role is unknown.
     if (isAuthRoute) {
       return redirectTo(role === "doctor" ? "/doctor" : "/dashboard");
     }
 
-    // Patient trying to access /doctor → send to patient dashboard
-    if (isDoctorRoute && role === "patient") {
+    // Only redirect across role boundaries when JWT role is explicit.
+    if (role === "patient" && isDoctorRoute) {
       return redirectTo("/dashboard");
     }
-
-    // Doctor trying to access /dashboard → send to doctor dashboard
-    if (isPatientRoute && role === "doctor") {
+    if (role === "doctor" && isPatientRoute) {
       return redirectTo("/doctor");
     }
   }

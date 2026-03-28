@@ -675,7 +675,9 @@ export async function createPrescription(
 // DOCTOR — BILLING / REVENUE
 // ============================================================
 
-/** Monthly revenue grouped by month (last N months) — scoped to the given doctor. */
+/** Monthly revenue grouped by month (last N months) — scoped to the given doctor.
+ *  NOTE: payments has no doctor_id column. We join through appointments and
+ *  filter client-side so membership payments are included. */
 export async function getDoctorMonthlyRevenue(
   doctorId: string,
   months = 7
@@ -686,17 +688,31 @@ export async function getDoctorMonthlyRevenue(
 
   const { data, error } = await supabase
     .from("payments")
-    .select("amount_cents, created_at")
+    .select(`
+      amount_cents,
+      created_at,
+      type,
+      appointment:appointments!payments_appointment_id_fkey (
+        doctor_id
+      )
+    `)
     .eq("status", "paid")
-    .eq("doctor_id", doctorId)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
 
+  // Filter to this doctor's payments — appointment payments by doctor_id,
+  // membership payments included (no appointment row to join to)
+  const doctorPayments = data.filter((p) => {
+    const appt = (p as any).appointment as { doctor_id?: string } | null;
+    if ((p as any).type === "membership") return true;
+    return appt?.doctor_id === doctorId;
+  });
+
   // Group by month client-side
   const grouped = new Map<string, number>();
-  for (const p of data) {
+  for (const p of doctorPayments) {
     const key = new Date(p.created_at).toLocaleDateString("en-US", {
       month: "short",
       year: "numeric",
