@@ -89,6 +89,30 @@ CREATE POLICY "users__patient_update_own"
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
+-- Trigger: blocks role column changes from authenticated sessions.
+-- Service-role / direct DB access (no JWT) is allowed through.
+-- Must be created here so a fresh rls.sql run also installs it.
+CREATE OR REPLACE FUNCTION public.guard_role_escalation()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  jwt_claims jsonb;
+BEGIN
+  IF OLD.role IS DISTINCT FROM NEW.role THEN
+    jwt_claims := NULLIF(current_setting('request.jwt.claims', true), '')::jsonb;
+    IF jwt_claims IS NOT NULL
+       AND (jwt_claims->>'role') IS DISTINCT FROM 'service_role' THEN
+      RAISE EXCEPTION 'permission_denied: role cannot be changed through this interface.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_role_escalation ON public.users;
+CREATE TRIGGER guard_role_escalation
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.guard_role_escalation();
+
 -- Allows trigger function (handle_new_user) to insert.
 -- The trigger runs as SECURITY DEFINER so no insert policy is needed
 -- for normal auth signups. This policy allows service_role inserts if needed.
@@ -191,9 +215,15 @@ CREATE POLICY "appointments__patient_cancel"
     AND status = 'cancelled'   -- Only allowed transition for patients
   );
 
-CREATE POLICY "appointments__doctor_full_access"
-  ON public.appointments FOR ALL
-  USING (public.is_doctor());
+-- Scoped to doctor_id = auth.uid() — not is_doctor() (which is too broad)
+CREATE POLICY "appointments__doctor_select"
+  ON public.appointments FOR SELECT
+  USING (doctor_id = auth.uid());
+
+CREATE POLICY "appointments__doctor_update"
+  ON public.appointments FOR UPDATE
+  USING  (doctor_id = auth.uid())
+  WITH CHECK (doctor_id = auth.uid());
 
 
 -- ============================================================
@@ -247,9 +277,28 @@ CREATE POLICY "documents__patient_delete_own_uploads"
     AND uploaded_by = auth.uid()
   );
 
-CREATE POLICY "documents__doctor_full_access"
-  ON public.documents FOR ALL
-  USING (public.is_doctor());
+-- Scoped to doctor's own patients via appointments relationship
+CREATE POLICY "documents__doctor_select"
+  ON public.documents FOR SELECT
+  USING (
+    uploaded_by = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.appointments a
+      WHERE a.patient_id = documents.patient_id
+        AND a.doctor_id  = auth.uid()
+    )
+  );
+
+CREATE POLICY "documents__doctor_insert"
+  ON public.documents FOR INSERT
+  WITH CHECK (
+    uploaded_by = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.appointments a
+      WHERE a.patient_id = documents.patient_id
+        AND a.doctor_id  = auth.uid()
+    )
+  );
 
 
 -- ============================================================
@@ -262,9 +311,26 @@ CREATE POLICY "vitals__patient_select_own"
   ON public.vitals FOR SELECT
   USING (patient_id = auth.uid());
 
-CREATE POLICY "vitals__doctor_full_access"
-  ON public.vitals FOR ALL
-  USING (public.is_doctor());
+-- Scoped via recorded_by (doctor who took the reading)
+CREATE POLICY "vitals__doctor_select"
+  ON public.vitals FOR SELECT
+  USING (recorded_by = auth.uid());
+
+CREATE POLICY "vitals__doctor_insert"
+  ON public.vitals FOR INSERT
+  WITH CHECK (
+    recorded_by = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.appointments a
+      WHERE a.patient_id = vitals.patient_id
+        AND a.doctor_id  = auth.uid()
+    )
+  );
+
+CREATE POLICY "vitals__doctor_update"
+  ON public.vitals FOR UPDATE
+  USING  (recorded_by = auth.uid())
+  WITH CHECK (recorded_by = auth.uid());
 
 
 -- ============================================================
@@ -310,9 +376,18 @@ CREATE POLICY "payments__patient_select_own"
   ON public.payments FOR SELECT
   USING (patient_id = auth.uid());
 
-CREATE POLICY "payments__doctor_select_all"
+-- payments has no doctor_id column — access is via the appointments join.
+-- Membership payments (appointment_id IS NULL) are service_role only.
+CREATE POLICY "payments__doctor_select"
   ON public.payments FOR SELECT
-  USING (public.is_doctor());
+  USING (
+    appointment_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.appointments a
+      WHERE a.id        = payments.appointment_id
+        AND a.doctor_id = auth.uid()
+    )
+  );
 
 -- No patient or doctor insert/update — payments are written by webhook only.
 -- Service_role bypasses RLS and handles this.
@@ -375,9 +450,45 @@ CREATE POLICY "announcements__doctor_full_access"
   ON public.announcements FOR ALL
   USING (doctor_id = auth.uid() AND public.is_doctor());
 
-CREATE POLICY "announcements__patient_select_published"
-  ON public.announcements FOR SELECT
-  USING (published = true AND public.is_patient());
+-- If migration 20260320000010 has been applied, uses status + audience columns.
+-- Otherwise falls back to the simple published boolean.
+-- This makes rls.sql safe to run regardless of migration order.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'announcements'
+      AND column_name  = 'status'
+  ) THEN
+    EXECUTE $policy$
+      CREATE POLICY "announcements__patient_select_published"
+        ON public.announcements FOR SELECT
+        USING (
+          status = 'published'
+          AND public.is_patient()
+          AND (
+            audience = 'all'
+            OR (
+              audience = 'pro'
+              AND EXISTS (
+                SELECT 1 FROM public.subscriptions s
+                WHERE s.patient_id = auth.uid()
+                  AND s.status = 'active'
+              )
+            )
+          )
+        )
+    $policy$;
+  ELSE
+    EXECUTE $policy$
+      CREATE POLICY "announcements__patient_select_published"
+        ON public.announcements FOR SELECT
+        USING (published = true AND public.is_patient())
+    $policy$;
+  END IF;
+END;
+$$;
 
 
 -- ============================================================
