@@ -2,7 +2,7 @@ import { getPatientAppointmentsAction } from "./actions";
 import AppointmentsClient from "./_appointments-client";
 
 export default async function AppointmentsPage() {
-  const appointments = await getPatientAppointmentsAction();
+  const { data: appointments, hasMore } = await getPatientAppointmentsAction();
 
-  return <AppointmentsClient initialData={appointments} />;
+  return <AppointmentsClient initialData={appointments} initialHasMore={hasMore} />;
 }

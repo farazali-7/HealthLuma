@@ -13,9 +13,11 @@ import {
   RefreshCw,
   Search,
   Star,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  getDoctorAppointmentsAction,
   updateAppointmentStatusAction,
   type DoctorAppointment,
   type ApptStatus,
@@ -88,8 +90,10 @@ const STATUS_META: Record<UIStatus, { label: string; cls: string; icon: React.Re
 
 export default function AppointmentsClient({
   initialData,
+  initialHasMore,
 }: {
   initialData: DoctorAppointment[];
+  initialHasMore: boolean;
 }) {
   const router = useRouter();
   const [appointments, setAppointments] = useState(() => sortAppointments(initialData));
@@ -97,6 +101,9 @@ export default function AppointmentsClient({
   const [filter,       setFilter]       = useState<FilterOption>("All");
   const [search,       setSearch]       = useState("");
   const [isPending,    startTransition] = useTransition();
+  const [hasMore,      setHasMore]      = useState(initialHasMore);
+  const [currentPage,  setCurrentPage]  = useState(0);
+  const [loadingMore,  setLoadingMore]  = useState(false);
 
   const todayStr    = new Date().toISOString().split("T")[0];
   const todayAppts  = appointments.filter((a) => a.appointment_date === todayStr);
@@ -148,6 +155,17 @@ export default function AppointmentsClient({
       const { error } = await updateAppointmentStatusAction(id, status);
       if (error) router.refresh(); // revert via server re-render
     });
+  }
+
+  function loadMore() {
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
+    getDoctorAppointmentsAction(nextPage).then(({ data, hasMore: more }) => {
+      setAppointments((prev) => sortAppointments([...prev, ...data]));
+      setHasMore(more);
+      setCurrentPage(nextPage);
+      setLoadingMore(false);
+    }).catch(() => setLoadingMore(false));
   }
 
   return (
@@ -377,9 +395,22 @@ export default function AppointmentsClient({
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {appointments.length} appointments
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        {hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore || isPending}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+          >
+            {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
+            {loadingMore ? "Loading…" : "Load More"}
+          </button>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Showing {filtered.length} of {appointments.length} appointments
+          {hasMore ? " · more available" : ""}
+        </p>
+      </div>
     </div>
   );
 }

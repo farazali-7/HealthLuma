@@ -309,21 +309,42 @@ function NewRxModal({
 export default function PrescriptionsPage() {
   const [prescriptions, setPrescriptions] = useState<DoctorPrescription[]>([]);
   const [loading,       setLoading]       = useState(true);
+  const [loadingMore,   setLoadingMore]   = useState(false);
+  const [hasMore,       setHasMore]       = useState(false);
+  const [currentPage,   setCurrentPage]   = useState(0);
   const [fetchError,    setFetchError]    = useState<string | null>(null);
   const [filter,        setFilter]        = useState<FilterOption>("All");
   const [search,        setSearch]        = useState("");
   const [showModal,     setShowModal]     = useState(false);
   const [isPending,     startTransition]  = useTransition();
 
-  // ── Load ──
+  // ── Load first page ──
   const load = useCallback(() => {
     setLoading(true);
     setFetchError(null);
-    getDoctorPrescriptionsAction()
-      .then(setPrescriptions)
+    setCurrentPage(0);
+    getDoctorPrescriptionsAction(0)
+      .then(({ data, hasMore: more }) => {
+        setPrescriptions(data);
+        setHasMore(more);
+      })
       .catch(() => setFetchError("Failed to load prescriptions. Please retry."))
       .finally(() => setLoading(false));
   }, []);
+
+  // ── Load next page ──
+  function loadMore() {
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
+    getDoctorPrescriptionsAction(nextPage)
+      .then(({ data, hasMore: more }) => {
+        setPrescriptions((prev) => [...prev, ...data]);
+        setHasMore(more);
+        setCurrentPage(nextPage);
+      })
+      .catch(() => setFetchError("Failed to load more. Please retry."))
+      .finally(() => setLoadingMore(false));
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -618,9 +639,24 @@ export default function PrescriptionsPage() {
         </div>
 
         {!loading && (
-          <p className="text-xs text-muted-foreground">
-            {filtered.length} of {prescriptions.length} prescriptions shown
-          </p>
+          <div className="flex flex-col items-center gap-3">
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : null}
+                {loadingMore ? "Loading…" : "Load More"}
+              </button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} of {prescriptions.length} prescriptions loaded
+              {hasMore ? " · more available" : ""}
+            </p>
+          </div>
         )}
       </div>
     </>

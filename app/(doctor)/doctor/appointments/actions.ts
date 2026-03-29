@@ -52,10 +52,17 @@ const TYPE_LABELS: Record<string, string> = {
  * joined with the patient's name.
  * RLS `appointments__doctor_full_access` enforces is_doctor().
  */
-export async function getDoctorAppointmentsAction(): Promise<DoctorAppointment[]> {
+const PAGE_SIZE = 30;
+
+export async function getDoctorAppointmentsAction(
+  page = 0
+): Promise<{ data: DoctorAppointment[]; hasMore: boolean }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { data: [], hasMore: false };
+
+  const from = page * PAGE_SIZE;
+  const to   = from + PAGE_SIZE; // fetch one extra to detect hasMore
 
   const { data, error } = await supabase
     .from("appointments")
@@ -76,14 +83,17 @@ export async function getDoctorAppointmentsAction(): Promise<DoctorAppointment[]
     `)
     .eq("doctor_id", user.id)
     .order("appointment_date", { ascending: true })
-    .order("start_time",       { ascending: true });
+    .order("start_time",       { ascending: true })
+    .range(from, to);
 
   if (error) {
     console.error("[getDoctorAppointmentsAction]", error.message);
-    return [];
+    return { data: [], hasMore: false };
   }
 
-  return (data ?? []) as unknown as DoctorAppointment[];
+  const rows = (data ?? []) as unknown as DoctorAppointment[];
+  const hasMore = rows.length > PAGE_SIZE;
+  return { data: hasMore ? rows.slice(0, PAGE_SIZE) : rows, hasMore };
 }
 
 // ─── Mutations ────────────────────────────────────────────────────

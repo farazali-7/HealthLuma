@@ -52,10 +52,17 @@ export interface IssueRxInput {
  * All prescriptions written by this doctor, newest first.
  * RLS ensures doctor_id = auth.uid().
  */
-export async function getDoctorPrescriptionsAction(): Promise<DoctorPrescription[]> {
+const PAGE_SIZE = 20;
+
+export async function getDoctorPrescriptionsAction(
+  page = 0
+): Promise<{ data: DoctorPrescription[]; hasMore: boolean }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { data: [], hasMore: false };
+
+  const from = page * PAGE_SIZE;
+  const to   = from + PAGE_SIZE; // fetch one extra to detect hasMore
 
   const { data, error } = await supabase
     .from("prescriptions")
@@ -80,14 +87,17 @@ export async function getDoctorPrescriptionsAction(): Promise<DoctorPrescription
       )
     `)
     .eq("doctor_id", user.id)
-    .order("prescribed_at", { ascending: false });
+    .order("prescribed_at", { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error("[getDoctorPrescriptionsAction]", error.message);
-    return [];
+    return { data: [], hasMore: false };
   }
 
-  return (data ?? []) as unknown as DoctorPrescription[];
+  const rows = (data ?? []) as unknown as DoctorPrescription[];
+  const hasMore = rows.length > PAGE_SIZE;
+  return { data: hasMore ? rows.slice(0, PAGE_SIZE) : rows, hasMore };
 }
 
 /**

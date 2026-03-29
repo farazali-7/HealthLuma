@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { BookingModal } from "../_components/BookingModal";
 import {
   cancelAppointmentAction,
+  getPatientAppointmentsAction,
   type PatientAppointment,
 } from "./actions";
 
@@ -53,8 +54,10 @@ function fmtTime(t: string) {
 
 export default function AppointmentsClient({
   initialData,
+  initialHasMore,
 }: {
   initialData: PatientAppointment[];
+  initialHasMore: boolean;
 }) {
   const router = useRouter();
   const [appointments, setAppointments] = useState<PatientAppointment[]>(initialData);
@@ -62,6 +65,9 @@ export default function AppointmentsClient({
   const [search,       setSearch]       = useState("");
   const [bookingOpen,  setBookingOpen]  = useState(false);
   const [isPending,    startTransition] = useTransition();
+  const [hasMore,      setHasMore]      = useState(initialHasMore);
+  const [currentPage,  setCurrentPage]  = useState(0);
+  const [loadingMore,  setLoadingMore]  = useState(false);
 
   // ── Derived stats ──
   const todayStr      = new Date().toISOString().split("T")[0];
@@ -115,6 +121,18 @@ export default function AppointmentsClient({
         router.refresh();
       }
     });
+  }
+
+  // ── Load More ──
+  function loadMore() {
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
+    getPatientAppointmentsAction(nextPage).then(({ data, hasMore: more }) => {
+      setAppointments((prev) => [...prev, ...data]);
+      setHasMore(more);
+      setCurrentPage(nextPage);
+      setLoadingMore(false);
+    }).catch(() => setLoadingMore(false));
   }
 
   return (
@@ -240,6 +258,18 @@ export default function AppointmentsClient({
                 cancelling={isPending}
               />
             ))
+          )}
+          {hasMore && !search.trim() && filter === "All" && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+              >
+                {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
+                {loadingMore ? "Loading…" : "Load More"}
+              </button>
+            </div>
           )}
         </div>
       </div>

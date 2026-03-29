@@ -613,22 +613,14 @@ export async function getDoctorTasks(
 }
 
 export async function toggleDoctorTask(
-  taskId: string
+  taskId: string,
+  newDone: boolean
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
-
-  // Read current state first
-  const { data: task } = await supabase
-    .from("doctor_tasks")
-    .select("is_done")
-    .eq("id", taskId)
-    .single();
-
   const { error } = await supabase
     .from("doctor_tasks")
-    .update({ is_done: !task?.is_done })
+    .update({ is_done: newDone })
     .eq("id", taskId);
-
   return { error: error?.message ?? null };
 }
 

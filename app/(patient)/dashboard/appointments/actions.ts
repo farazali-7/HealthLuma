@@ -44,10 +44,17 @@ function fmtDate(dateStr: string): string {
  * joined with the doctor's public profile.
  * RLS guarantees patient_id = auth.uid().
  */
-export async function getPatientAppointmentsAction(): Promise<PatientAppointment[]> {
+const PAGE_SIZE = 15;
+
+export async function getPatientAppointmentsAction(
+  page = 0
+): Promise<{ data: PatientAppointment[]; hasMore: boolean }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { data: [], hasMore: false };
+
+  const from = page * PAGE_SIZE;
+  const to   = from + PAGE_SIZE; // fetch one extra to detect hasMore
 
   const { data, error } = await supabase
     .from("appointments")
@@ -69,14 +76,17 @@ export async function getPatientAppointmentsAction(): Promise<PatientAppointment
     `)
     .eq("patient_id", user.id)
     .order("appointment_date", { ascending: false })
-    .order("start_time",       { ascending: true });
+    .order("start_time",       { ascending: true })
+    .range(from, to);
 
   if (error) {
     console.error("[getPatientAppointmentsAction]", error.message);
-    return [];
+    return { data: [], hasMore: false };
   }
 
-  return (data ?? []) as unknown as PatientAppointment[];
+  const rows = (data ?? []) as unknown as PatientAppointment[];
+  const hasMore = rows.length > PAGE_SIZE;
+  return { data: hasMore ? rows.slice(0, PAGE_SIZE) : rows, hasMore };
 }
 
 // ─── Mutations ────────────────────────────────────────────────────
