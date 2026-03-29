@@ -2,6 +2,7 @@
 
 import { createClient }       from "@/lib/supabase/server";
 import { sendNotification }   from "@/lib/supabase/service";
+import { logger }             from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ export interface BookAppointmentInput {
 export async function bookAppointmentAction(
   input: BookAppointmentInput
 ): Promise<{ error: string | null }> {
+  try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
@@ -249,9 +251,14 @@ export async function bookAppointmentAction(
         link:    "/doctor/appointments",
       }),
     ]);
-  } catch {
+  } catch (notifyErr) {
     // Notification failure must never fail the booking
+    logger.warn("bookAppointmentAction:notify", notifyErr);
   }
 
   return { error: null };
+  } catch (err) {
+    logger.error("bookAppointmentAction", err, { doctorId: input.doctor_id, date: input.appointment_date });
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }

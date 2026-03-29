@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { logger }       from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ export interface DoctorDashboardData {
  * Four parallel queries: profile + today's queue + recent notes + pending tasks.
  */
 export async function getDoctorDashboardAction(): Promise<DoctorDashboardData> {
+  try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -126,6 +128,10 @@ export async function getDoctorDashboardAction(): Promise<DoctorDashboardData> {
     notes:  (notesRes.data  ?? []) as unknown as RecentNote[],
     tasks:  (tasksRes.data  ?? []) as unknown as DashboardTask[],
   };
+  } catch (err) {
+    logger.error("getDoctorDashboardAction", err);
+    return { doctorName: "Doctor", queue: [], notes: [], tasks: [] };
+  }
 }
 
 // ─── Mutations ────────────────────────────────────────────────────
@@ -141,17 +147,26 @@ export async function toggleDoctorTaskAction(
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing task ID" };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase
-    .from("doctor_tasks")
-    .update({ is_done: newDone })
-    .eq("id",        id)
-    .eq("doctor_id", user.id);
+    const { error } = await supabase
+      .from("doctor_tasks")
+      .update({ is_done: newDone })
+      .eq("id",        id)
+      .eq("doctor_id", user.id);
 
-  return { error: error?.message ?? null };
+    if (error) {
+      logger.warn("toggleDoctorTaskAction", error, { taskId: id });
+      return { error: error.message };
+    }
+    return { error: null };
+  } catch (err) {
+    logger.error("toggleDoctorTaskAction", err, { taskId: id });
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }
 
 /**
@@ -166,17 +181,26 @@ export async function saveClinicalNoteAction(
     return { error: "Patient and content are required." };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase
-    .from("clinical_notes")
-    .insert({
-      doctor_id:  user.id,
-      patient_id,
-      content: content.trim(),
-    });
+    const { error } = await supabase
+      .from("clinical_notes")
+      .insert({
+        doctor_id:  user.id,
+        patient_id,
+        content: content.trim(),
+      });
 
-  return { error: error?.message ?? null };
+    if (error) {
+      logger.warn("saveClinicalNoteAction", error, { patientId: patient_id });
+      return { error: error.message };
+    }
+    return { error: null };
+  } catch (err) {
+    logger.error("saveClinicalNoteAction", err, { patientId: patient_id });
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }

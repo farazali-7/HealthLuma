@@ -2,6 +2,7 @@
 
 import { createClient }     from "@/lib/supabase/server";
 import { sendNotification } from "@/lib/supabase/service";
+import { logger }           from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export async function getDoctorAppointmentsAction(
     .range(from, to);
 
   if (error) {
-    console.error("[getDoctorAppointmentsAction]", error.message);
+    logger.warn("getDoctorAppointmentsAction", error, { page });
     return { data: [], hasMore: false };
   }
 
@@ -114,73 +115,82 @@ export async function updateAppointmentStatusAction(
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing appointment ID" };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-  // ── 1. Read current appointment (verify ownership + current status) ──
-  const { data: appt } = await supabase
-    .from("appointments")
-    .select("patient_id, appointment_date, start_time, type, status")
-    .eq("id",        id)
-    .eq("doctor_id", user.id)
-    .maybeSingle();
+    // ── 1. Read current appointment (verify ownership + current status) ──
+    const { data: appt } = await supabase
+      .from("appointments")
+      .select("patient_id, appointment_date, start_time, type, status")
+      .eq("id",        id)
+      .eq("doctor_id", user.id)
+      .maybeSingle();
 
-  if (!appt) {
-    return { error: "Appointment not found." };
-  }
-
-  // ── 2. Guard: only upcoming → final status is valid ──
-  if (appt.status !== "upcoming") {
-    return {
-      error: `Cannot update a ${appt.status} appointment. Only upcoming appointments can be changed.`,
-    };
-  }
-
-  // ── 3. Update ──
-  const { error } = await supabase
-    .from("appointments")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id",        id)
-    .eq("doctor_id", user.id);
-
-  if (error) return { error: error.message };
-
-  // ── 4. Notify patient (non-blocking) ──
-  if (status === "completed" || status === "cancelled") {
-    try {
-      const { data: doctor } = await supabase
-        .from("users")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
-
-      const doctorName = doctor?.full_name ?? "your doctor";
-      const typeLabel  = TYPE_LABELS[appt.type] ?? appt.type;
-      const dateLabel  = fmtDate(appt.appointment_date);
-      const timeLabel  = fmtTime(appt.start_time);
-
-      if (status === "completed") {
-        await sendNotification({
-          user_id: appt.patient_id,
-          type:    "appointment_confirmed",
-          title:   "Visit Completed",
-          body:    `Your ${typeLabel} with ${doctorName} on ${dateLabel} has been completed. Check your records for any notes.`,
-          link:    "/dashboard/appointments",
-        });
-      } else {
-        await sendNotification({
-          user_id: appt.patient_id,
-          type:    "appointment_cancelled",
-          title:   "Appointment Cancelled",
-          body:    `Your ${typeLabel} with ${doctorName} on ${dateLabel} at ${timeLabel} has been cancelled. Please contact the clinic to reschedule.`,
-          link:    "/dashboard/appointments",
-        });
-      }
-    } catch {
-      // Never block the status update because of a notification failure
+    if (!appt) {
+      return { error: "Appointment not found." };
     }
-  }
 
-  return { error: null };
+    // ── 2. Guard: only upcoming → final status is valid ──
+    if (appt.status !== "upcoming") {
+      return {
+        error: `Cannot update a ${appt.status} appointment. Only upcoming appointments can be changed.`,
+      };
+    }
+
+    // ── 3. Update ──
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id",        id)
+      .eq("doctor_id", user.id);
+
+    if (error) {
+      logger.warn("updateAppointmentStatusAction", error, { appointmentId: id, status });
+      return { error: error.message };
+    }
+
+    // ── 4. Notify patient (non-blocking) ──
+    if (status === "completed" || status === "cancelled") {
+      try {
+        const { data: doctor } = await supabase
+          .from("users")
+          .select("full_name")
+          .eq("id", user.id)
+          .single();
+
+        const doctorName = doctor?.full_name ?? "your doctor";
+        const typeLabel  = TYPE_LABELS[appt.type] ?? appt.type;
+        const dateLabel  = fmtDate(appt.appointment_date);
+        const timeLabel  = fmtTime(appt.start_time);
+
+        if (status === "completed") {
+          await sendNotification({
+            user_id: appt.patient_id,
+            type:    "appointment_confirmed",
+            title:   "Visit Completed",
+            body:    `Your ${typeLabel} with ${doctorName} on ${dateLabel} has been completed. Check your records for any notes.`,
+            link:    "/dashboard/appointments",
+          });
+        } else {
+          await sendNotification({
+            user_id: appt.patient_id,
+            type:    "appointment_cancelled",
+            title:   "Appointment Cancelled",
+            body:    `Your ${typeLabel} with ${doctorName} on ${dateLabel} at ${timeLabel} has been cancelled. Please contact the clinic to reschedule.`,
+            link:    "/dashboard/appointments",
+          });
+        }
+      } catch (notifyErr) {
+        // Never block the status update because of a notification failure
+        logger.warn("updateAppointmentStatusAction:notify", notifyErr, { appointmentId: id });
+      }
+    }
+
+    return { error: null };
+  } catch (err) {
+    logger.error("updateAppointmentStatusAction", err, { appointmentId: id, status });
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }

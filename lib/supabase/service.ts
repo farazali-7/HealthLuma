@@ -6,6 +6,7 @@
 // ============================================================
 
 import { createClient } from "@supabase/supabase-js";
+import { serverEnv } from "@/lib/env";
 
 /**
  * Creates a Supabase client with the service_role key.
@@ -15,16 +16,7 @@ import { createClient } from "@supabase/supabase-js";
  * - Sending notifications to any user
  */
 export function createServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env variables"
-    );
-  }
-
-  return createClient(url, key, {
+  return createClient(serverEnv.SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       // Service client does not use session cookies
       autoRefreshToken: false,

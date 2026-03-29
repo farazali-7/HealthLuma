@@ -2,6 +2,7 @@
 
 import { createClient }     from "@/lib/supabase/server";
 import { sendNotification } from "@/lib/supabase/service";
+import { logger }           from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export async function getPatientAppointmentsAction(
     .range(from, to);
 
   if (error) {
-    console.error("[getPatientAppointmentsAction]", error.message);
+    logger.warn("getPatientAppointmentsAction", error, { page });
     return { data: [], hasMore: false };
   }
 
@@ -108,55 +109,63 @@ export async function cancelAppointmentAction(
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing appointment ID" };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  // ── 1. Read the appointment first (need doctor_id + meta for notification) ──
-  const { data: appt } = await supabase
-    .from("appointments")
-    .select("doctor_id, appointment_date, start_time, type")
-    .eq("id",         id)
-    .eq("patient_id", user.id)
-    .eq("status",     "upcoming")
-    .maybeSingle();
-
-  if (!appt) {
-    return { error: "Appointment not found or already cancelled." };
-  }
-
-  // ── 2. Cancel ──
-  const { error } = await supabase
-    .from("appointments")
-    .update({ status: "cancelled", updated_at: new Date().toISOString() })
-    .eq("id",         id)
-    .eq("patient_id", user.id)
-    .eq("status",     "upcoming");  // second guard matches RLS
-
-  if (error) return { error: error.message };
-
-  // ── 3. Notify doctor (non-blocking) ──
   try {
-    const { data: patient } = await supabase
-      .from("users")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-    const patientName = patient?.full_name ?? "A patient";
-    const dateLabel   = fmtDate(appt.appointment_date);
-    const timeLabel   = fmtTime(appt.start_time);
+    // ── 1. Read the appointment first (need doctor_id + meta for notification) ──
+    const { data: appt } = await supabase
+      .from("appointments")
+      .select("doctor_id, appointment_date, start_time, type")
+      .eq("id",         id)
+      .eq("patient_id", user.id)
+      .eq("status",     "upcoming")
+      .maybeSingle();
 
-    await sendNotification({
-      user_id: appt.doctor_id,
-      type:    "appointment_cancelled",
-      title:   "Appointment Cancelled",
-      body:    `${patientName} cancelled their appointment on ${dateLabel} at ${timeLabel}.`,
-      link:    "/doctor/appointments",
-    });
-  } catch {
-    // Never fail the cancellation because of a notification error
+    if (!appt) {
+      return { error: "Appointment not found or already cancelled." };
+    }
+
+    // ── 2. Cancel ──
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id",         id)
+      .eq("patient_id", user.id)
+      .eq("status",     "upcoming");  // second guard matches RLS
+
+    if (error) {
+      logger.warn("cancelAppointmentAction", error, { appointmentId: id });
+      return { error: error.message };
+    }
+
+    // ── 3. Notify doctor (non-blocking) ──
+    try {
+      const { data: patient } = await supabase
+        .from("users")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      const patientName = patient?.full_name ?? "A patient";
+      const dateLabel   = fmtDate(appt.appointment_date);
+      const timeLabel   = fmtTime(appt.start_time);
+
+      await sendNotification({
+        user_id: appt.doctor_id,
+        type:    "appointment_cancelled",
+        title:   "Appointment Cancelled",
+        body:    `${patientName} cancelled their appointment on ${dateLabel} at ${timeLabel}.`,
+        link:    "/doctor/appointments",
+      });
+    } catch (notifyErr) {
+      logger.warn("cancelAppointmentAction:notify", notifyErr, { appointmentId: id });
+    }
+
+    return { error: null };
+  } catch (err) {
+    logger.error("cancelAppointmentAction", err, { appointmentId: id });
+    return { error: "An unexpected error occurred. Please try again." };
   }
-
-  return { error: null };
 }

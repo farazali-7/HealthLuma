@@ -2,6 +2,7 @@
 
 import { createClient }     from "@/lib/supabase/server";
 import { sendNotification } from "@/lib/supabase/service";
+import { logger }           from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ export async function getDoctorPrescriptionsAction(
     .range(from, to);
 
   if (error) {
-    console.error("[getDoctorPrescriptionsAction]", error.message);
+    logger.warn("getDoctorPrescriptionsAction", error, { page });
     return { data: [], hasMore: false };
   }
 
@@ -138,49 +139,57 @@ export async function issuePrescriptionAction(
     return { error: "Refills must be between 0 and 12." };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const { error } = await supabase
-    .from("prescriptions")
-    .insert({
-      patient_id,
-      doctor_id:      user.id,
-      appointment_id: input.appointment_id ?? null,
-      medication:     medication.trim(),
-      dose:           dose.trim(),
-      frequency:      frequency.trim(),
-      duration:       input.duration?.trim()  || null,
-      condition:      input.condition?.trim() || null,
-      notes:          input.notes?.trim()     || null,
-      refills_total:  input.refills_total,
-      refills_used:   0,
-      expires_at:     input.expires_at || null,
-    });
-
-  if (error) return { error: error.message };
-
-  // Notify patient (fire-and-forget)
   try {
-    const { data: doctor } = await supabase
-      .from("users")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-    await sendNotification({
-      user_id: patient_id,
-      type:    "new_prescription",
-      title:   "New Prescription Issued",
-      body:    `${doctor?.full_name ?? "Your doctor"} has issued ${medication.trim()} ${dose.trim()}. View it in your health records.`,
-      link:    "/dashboard/records",
-    });
-  } catch {
-    // Never block the insert because of a notification error
+    const { error } = await supabase
+      .from("prescriptions")
+      .insert({
+        patient_id,
+        doctor_id:      user.id,
+        appointment_id: input.appointment_id ?? null,
+        medication:     medication.trim(),
+        dose:           dose.trim(),
+        frequency:      frequency.trim(),
+        duration:       input.duration?.trim()  || null,
+        condition:      input.condition?.trim() || null,
+        notes:          input.notes?.trim()     || null,
+        refills_total:  input.refills_total,
+        refills_used:   0,
+        expires_at:     input.expires_at || null,
+      });
+
+    if (error) {
+      logger.warn("issuePrescriptionAction", error, { patientId: patient_id });
+      return { error: error.message };
+    }
+
+    // Notify patient (fire-and-forget)
+    try {
+      const { data: doctor } = await supabase
+        .from("users")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      await sendNotification({
+        user_id: patient_id,
+        type:    "new_prescription",
+        title:   "New Prescription Issued",
+        body:    `${doctor?.full_name ?? "Your doctor"} has issued ${medication.trim()} ${dose.trim()}. View it in your health records.`,
+        link:    "/dashboard/records",
+      });
+    } catch (notifyErr) {
+      logger.warn("issuePrescriptionAction:notify", notifyErr, { patientId: patient_id });
+    }
+
+    return { error: null };
+  } catch (err) {
+    logger.error("issuePrescriptionAction", err, { patientId: patient_id });
+    return { error: "An unexpected error occurred. Please try again." };
   }
-
-  return { error: null };
 }
 
 /**
@@ -194,33 +203,41 @@ export async function markRefillUsedAction(
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing prescription ID" };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-  const { data: rx } = await supabase
-    .from("prescriptions")
-    .select("refills_total, refills_used, status")
-    .eq("id", id)
-    .eq("doctor_id", user.id)
-    .maybeSingle();
+    const { data: rx } = await supabase
+      .from("prescriptions")
+      .select("refills_total, refills_used, status")
+      .eq("id", id)
+      .eq("doctor_id", user.id)
+      .maybeSingle();
 
-  if (!rx) return { error: "Prescription not found." };
-  if (rx.refills_used >= rx.refills_total) {
-    return { error: "No refills remaining on this prescription." };
+    if (!rx) return { error: "Prescription not found." };
+    if (rx.refills_used >= rx.refills_total) {
+      return { error: "No refills remaining on this prescription." };
+    }
+
+    const newUsed   = rx.refills_used + 1;
+    const newStatus: RxStatus = newUsed >= rx.refills_total ? "refill-due" : (rx.status as RxStatus);
+
+    const { error } = await supabase
+      .from("prescriptions")
+      .update({ refills_used: newUsed, status: newStatus })
+      .eq("id", id)
+      .eq("doctor_id", user.id);
+
+    if (error) {
+      logger.warn("markRefillUsedAction", error, { prescriptionId: id });
+      return { error: error.message };
+    }
+    return { error: null };
+  } catch (err) {
+    logger.error("markRefillUsedAction", err, { prescriptionId: id });
+    return { error: "An unexpected error occurred. Please try again." };
   }
-
-  const newUsed   = rx.refills_used + 1;
-  // Transition to 'refill-due' when the last refill is consumed
-  const newStatus: RxStatus = newUsed >= rx.refills_total ? "refill-due" : (rx.status as RxStatus);
-
-  const { error } = await supabase
-    .from("prescriptions")
-    .update({ refills_used: newUsed, status: newStatus })
-    .eq("id", id)
-    .eq("doctor_id", user.id);
-
-  return { error: error?.message ?? null };
 }
 
 /**
@@ -234,15 +251,24 @@ export async function updatePrescriptionStatusAction(
 ): Promise<{ error: string | null }> {
   if (!id) return { error: "Missing prescription ID" };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase
-    .from("prescriptions")
-    .update({ status })
-    .eq("id",        id)
-    .eq("doctor_id", user.id);
+    const { error } = await supabase
+      .from("prescriptions")
+      .update({ status })
+      .eq("id",        id)
+      .eq("doctor_id", user.id);
 
-  return { error: error?.message ?? null };
+    if (error) {
+      logger.warn("updatePrescriptionStatusAction", error, { prescriptionId: id, status });
+      return { error: error.message };
+    }
+    return { error: null };
+  } catch (err) {
+    logger.error("updatePrescriptionStatusAction", err, { prescriptionId: id, status });
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }
