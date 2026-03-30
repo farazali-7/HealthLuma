@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, RefreshCw, ChevronRight } from "lucide-react";
+import { Send, Bot, RefreshCw, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "../context";
 
-// ─── Types & Data ─────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────
 
 interface Message {
   role: "user" | "ai";
   text: string;
   cta?: { label: string; href: string };
+  isError?: boolean;
 }
+
+// ─── Constants ────────────────────────────────────────────────
 
 const SUGGESTED_QUESTIONS = [
   "What do my latest lab results mean?",
@@ -22,86 +25,61 @@ const SUGGESTED_QUESTIONS = [
   "When should I book a checkup?",
 ];
 
-function getCannedReply(input: string): { text: string; cta?: { label: string; href: string } } {
-  const q = input.toLowerCase();
+const ERROR_MESSAGE: Message = {
+  role: "ai",
+  text: "I'm having trouble connecting right now. Please try again in a moment, or book a consultation if you need immediate help.",
+  cta: { label: "Book a consultation", href: "/dashboard/appointments" },
+  isError: true,
+};
 
-  if (q.match(/vitamin d|vit d|vitamin-d/)) {
-    return {
-      text: "Your latest Vitamin D (25-OH) result was 28 ng/mL, which is slightly below the optimal range of 30–100 ng/mL. Dr. Jack has already prescribed Vitamin D3 2000 IU daily. Taking it consistently with a fatty meal improves absorption. A recheck in 3 months is advisable.",
-      cta: { label: "View lab result", href: "/dashboard/records" },
-    };
-  }
-  if (q.match(/lab|result|blood test|cholesterol|glucose|hba1c/)) {
-    return {
-      text: "Your February 2026 panel looks mostly reassuring. Cholesterol is 182 mg/dL (below the 200 threshold), fasting glucose is 94 mg/dL (normal range), and HbA1c is 5.4% (well below the pre-diabetes cutoff of 5.7%). Vitamin D is slightly low and worth monitoring.",
-      cta: { label: "Full lab breakdown", href: "/dashboard/records" },
-    };
-  }
-  if (q.match(/blood pressure|bp|hypertension|systolic|diastolic/)) {
-    return {
-      text: "A normal blood pressure is below 120/80 mmHg. Your most recent reading is 118/75 mmHg — that's excellent and trending down from your September high of 128/82. Staying consistent with your current habits is working well.",
-    };
-  }
-  if (q.match(/appointment|book|schedule|slot|availability/)) {
-    return {
-      text: "You can view live availability and book a slot in under 60 seconds. Your next scheduled appointment is with Dr. Jack on March 15 at 10:30 AM for a follow-up.",
-      cta: { label: "Book appointment", href: "/dashboard/appointments" },
-    };
-  }
-  if (q.match(/prescription|refill|medication|medicine|metformin|vitamin/)) {
-    return {
-      text: "You currently have 3 active prescriptions: Vitamin D3 (5 refills), Omega-3 (5 refills), and Metformin (2 refills). You can request a refill directly from the Records page — no phone call needed.",
-      cta: { label: "View prescriptions", href: "/dashboard/records" },
-    };
-  }
-  if (q.match(/fever|temperature|chills|flu/)) {
-    return {
-      text: "A fever above 38.3°C (101°F) for more than 3 days, or any fever above 39.4°C (103°F), warrants a same-day appointment. For mild fevers with no other alarming symptoms, rest and fluids are usually appropriate. Would you like to book an urgent slot today?",
-      cta: { label: "Book urgent appointment", href: "/dashboard/appointments" },
-    };
-  }
-  if (q.match(/chest|heart|pain|pressure|palpitation/)) {
-    return {
-      text: "Chest discomfort, pressure, or pain that radiates to the arm or jaw should be evaluated urgently. If symptoms are severe or sudden, call emergency services immediately. For mild or recurring chest pressure, book an urgent slot with Dr. Jack — same-day appointments are available.",
-      cta: { label: "Book urgent appointment", href: "/dashboard/appointments" },
-    };
-  }
-  if (q.match(/checkup|annual|physical|screen/)) {
-    return {
-      text: "For adults under 40 with no chronic conditions, an annual check-up is recommended. Your last full physical was October 2025. Your next annual checkup with Dr. Jack is scheduled for April 1, 2026 — you're well within the recommended interval.",
-      cta: { label: "View appointments", href: "/dashboard/appointments" },
-    };
-  }
-  if (q.match(/fasting|prepare|preparation|before test/)) {
-    return {
-      text: "For most fasting blood tests (glucose, cholesterol, metabolic panel): fast for 8–12 hours, drink only plain water, take regular medications unless told otherwise, avoid strenuous exercise the night before, and arrive well-hydrated. Your clinic can confirm specific instructions when booking.",
-    };
-  }
-  if (q.match(/family|member|child|spouse|parent/)) {
-    return {
-      text: "With a HealthLuma Family Care membership, you can manage appointments and records for up to 9 family members (spouse + 6 children + 2 parents) from a single account. The plan is $150/year and pays for itself in about 8 family visits.",
-      cta: { label: "Manage family", href: "/dashboard/family" },
-    };
-  }
-  if (q.match(/billing|invoice|payment|plan|membership|pro/)) {
-    return {
-      text: "Your current plan is HealthLuma Standard. Upgrading to Family Care ($150/year) gives you 20% off every visit plus priority slots and same-day urgent booking for your whole family.",
-      cta: { label: "View billing & plans", href: "/dashboard/billing" },
-    };
-  }
+// ─── API Layer ────────────────────────────────────────────────
 
-  return {
-    text: "That's a good question. For the most accurate guidance, I'd recommend booking a short consultation with Dr. Jack — he can review your complete history and give personalised advice. I can help you book a slot right now.",
-    cta: { label: "Book a consultation", href: "/dashboard/appointments" },
-  };
+interface GroqHistoryEntry {
+  role: "user" | "assistant";
+  content: string;
 }
 
-// ─── Page ──────────────────────────────────────────────────────
+async function fetchAiReply(
+  message: string,
+  history: GroqHistoryEntry[],
+): Promise<string> {
+  const res = await fetch("/api/ai-chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+  });
+
+  const data: { success: boolean; reply?: string; error?: string } = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.error ?? "Failed to get a response.");
+  }
+
+  return data.reply!;
+}
+
+function buildHistory(messages: Message[]): GroqHistoryEntry[] {
+  // Convert internal message format to the API's expected format.
+  // Exclude error messages from history — they're UI artefacts, not real conversation.
+  return messages
+    .filter((m) => !m.isError)
+    .map((m) => ({
+      role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
+      content: m.text,
+    }));
+}
+
+// ─── Page ─────────────────────────────────────────────────────
 
 export default function AiAssistantPage() {
   const user = useUser();
-  const firstName =
-    (user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "there").split(" ")[0];
+  const firstName = (
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split("@")[0] ||
+    "there"
+  )
+    .split(" ")[0];
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -109,9 +87,9 @@ export default function AiAssistantPage() {
       text: `Hi ${firstName}! I'm your HealthLuma AI assistant. I can help you understand your lab results, manage medications, prepare for appointments, and more. What would you like to know?`,
     },
   ]);
-  const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [input, setInput]     = useState("");
+  const [typing, setTyping]   = useState(false);
+  const messagesEndRef         = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -119,16 +97,25 @@ export default function AiAssistantPage() {
 
   const send = async (text: string) => {
     if (!text.trim() || typing) return;
+
     const userMsg: Message = { role: "user", text: text.trim() };
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setTyping(true);
 
-    await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
+    try {
+      // Build history from existing messages before the new user message.
+      // The new message itself is passed separately as `message`.
+      const history = buildHistory(messages);
 
-    const reply = getCannedReply(text);
-    setMessages((prev) => [...prev, { role: "ai", ...reply }]);
-    setTyping(false);
+      const reply = await fetchAiReply(text.trim(), history);
+      setMessages((prev) => [...prev, { role: "ai", text: reply }]);
+    } catch {
+      setMessages((prev) => [...prev, ERROR_MESSAGE]);
+    } finally {
+      setTyping(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -179,11 +166,24 @@ export default function AiAssistantPage() {
 
       {/* ── Disclaimer Banner ── */}
       <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-4 py-2.5">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground/70">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 text-muted-foreground/70"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         <p className="text-[11px] text-muted-foreground">
-          Responses are informational only and do not constitute medical advice. Always consult Dr. Jack for clinical decisions.
+          Responses are informational only and do not constitute medical advice.
+          Always consult Dr. Jack for clinical decisions.
         </p>
       </div>
 
@@ -194,17 +194,26 @@ export default function AiAssistantPage() {
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
           {messages.map((msg, i) => (
-            <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+            <div
+              key={i}
+              className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+            >
               {/* Avatar */}
               <div
                 className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${
                   msg.role === "ai"
-                    ? "bg-primary/10"
+                    ? msg.isError
+                      ? "bg-destructive/10"
+                      : "bg-primary/10"
                     : "bg-muted/60"
                 }`}
               >
                 {msg.role === "ai" ? (
-                  <Bot className="size-4 text-primary" />
+                  msg.isError ? (
+                    <AlertCircle className="size-4 text-destructive" />
+                  ) : (
+                    <Bot className="size-4 text-primary" />
+                  )
                 ) : (
                   <span className="text-[10px] font-bold text-muted-foreground">
                     {firstName.slice(0, 2).toUpperCase()}
@@ -213,11 +222,17 @@ export default function AiAssistantPage() {
               </div>
 
               {/* Bubble */}
-              <div className={`max-w-[75%] space-y-2 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+              <div
+                className={`max-w-[75%] space-y-2 ${
+                  msg.role === "user" ? "items-end" : "items-start"
+                } flex flex-col`}
+              >
                 <div
                   className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "ai"
-                      ? "rounded-tl-sm bg-muted/40 text-foreground"
+                      ? msg.isError
+                        ? "rounded-tl-sm bg-destructive/5 text-destructive"
+                        : "rounded-tl-sm bg-muted/40 text-foreground"
                       : "rounded-tr-sm bg-primary text-primary-foreground"
                   }`}
                 >
@@ -253,7 +268,7 @@ export default function AiAssistantPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggested questions — shown when only greeting is present */}
+        {/* Suggested questions — shown only on empty/greeting state */}
         {messages.length === 1 && (
           <div className="border-t border-border/50 px-5 py-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">

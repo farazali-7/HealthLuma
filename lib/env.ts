@@ -45,4 +45,5 @@ export const env = {
 export const serverEnv = {
   ...env,
   SUPABASE_SERVICE_ROLE_KEY: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  GROQ_API_KEY:              requireEnv("GROQ_API_KEY"),
 } as const;

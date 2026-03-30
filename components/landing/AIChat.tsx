@@ -26,49 +26,22 @@ const INITIAL_MESSAGE: Message = {
   timestamp: new Date(),
 };
 
-// ─── Mock AI response logic ────────────────────────────────────────
-function getMockResponse(query: string): string {
-  const q = query.toLowerCase();
-  if (q.includes("appointment") || q.includes("book") || q.includes("slot")) {
-    return "You can book an appointment directly through our platform.\n\n• Standard consultation: $100\n• Pro members get 20% off + priority slots\n\nWould you like me to take you to the booking page?";
+// ─── AI API call ───────────────────────────────────────────────────
+async function fetchPublicAiReply(message: string): Promise<string> {
+  const res = await fetch("/api/ai-chat/public", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+
+  const data: { success: boolean; reply?: string; error?: string } =
+    await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.error ?? "Failed to get a response.");
   }
-  if (
-    q.includes("symptom") ||
-    q.includes("sick") ||
-    q.includes("pain") ||
-    q.includes("fever") ||
-    q.includes("hurt")
-  ) {
-    return "For an accurate diagnosis, I recommend booking a consultation. That said, I'm happy to share initial guidance.\n\nCould you describe your symptoms in more detail?";
-  }
-  if (
-    q.includes("family") ||
-    q.includes("pro") ||
-    q.includes("membership") ||
-    q.includes("plan")
-  ) {
-    return "Family Care Pro ($150/year) covers up to 4 family members and includes:\n\n• 20% off every consultation\n• Priority booking slots\n• Same-day urgent booking\n• Advanced AI assistant\n• Prescription archive\n\nIt pays for itself in just 2 visits!";
-  }
-  if (
-    q.includes("price") ||
-    q.includes("cost") ||
-    q.includes("how much") ||
-    q.includes("fee")
-  ) {
-    return "We offer two options:\n\n• Standard visit — $100 per consultation\n• Family Care Pro — $150/year (20% discount, 4 members, priority slots)\n\nMost families save $150+ per year with the Pro plan.";
-  }
-  if (
-    q.includes("doctor") ||
-    q.includes("available") ||
-    q.includes("schedule") ||
-    q.includes("hours")
-  ) {
-    return "The doctor is available Monday through Saturday with 15 and 30-minute slots.\n\nReal-time availability is shown when you book. Pro members also get access to same-day urgent slots.";
-  }
-  if (q.includes("urgent") || q.includes("emergency") || q.includes("same day")) {
-    return "Same-day urgent booking is available exclusively for Pro members.\n\nFor life-threatening emergencies, please call 911 or visit your nearest emergency room immediately.";
-  }
-  return "That's a great question. For the most accurate guidance, I'd recommend booking a consultation with our doctor.\n\nIs there anything specific about our services, pricing, or appointments I can help clarify?";
+
+  return data.reply!;
 }
 
 function formatTime(date: Date): string {
@@ -363,7 +336,7 @@ function AIChatPanel({ onClose }: { onClose: () => void }) {
     }
   }, [messages, isTyping]);
 
-  const handleSend = (content: string) => {
+  const handleSend = async (content: string) => {
     const userMsg: Message = {
       id: `u-${Date.now()}`,
       role: "user",
@@ -374,18 +347,29 @@ function AIChatPanel({ onClose }: { onClose: () => void }) {
     setNewestId(userMsg.id);
     setIsTyping(true);
 
-    const delay = 1100 + Math.random() * 700;
-    setTimeout(() => {
+    try {
+      const reply = await fetchPublicAiReply(content);
       const aiMsg: Message = {
         id: `a-${Date.now()}`,
         role: "assistant",
-        content: getMockResponse(content),
+        content: reply,
         timestamp: new Date(),
       };
-      setIsTyping(false);
       setMessages((prev) => [...prev, aiMsg]);
       setNewestId(aiMsg.id);
-    }, delay);
+    } catch {
+      const errMsg: Message = {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        content:
+          "I'm having trouble connecting right now. Please try again in a moment, or book a consultation directly through the site.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+      setNewestId(errMsg.id);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const showSuggestions = messages.length === 1;
