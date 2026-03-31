@@ -116,7 +116,7 @@ export default function AnalyticsClient({ initialData }: { initialData: DoctorAn
         {kpiStats.map((kpi, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-start justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground leading-tight">{kpi.label}</p>
               <span className="flex size-6 items-center justify-center rounded-lg bg-[#4D9A7F]/10 text-[#4D9A7F]">{kpi.icon}</span>
             </div>
             <p className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-playfair)" }}>{kpi.value}</p>
@@ -132,7 +132,7 @@ export default function AnalyticsClient({ initialData }: { initialData: DoctorAn
       {/* Row 1: Patient Volume + Appointment Types */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div className="rounded-2xl border border-border bg-card shadow-sm lg:col-span-7">
-          <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{PERIOD_LABELS[period]}</p>
               <h2 className="mt-0.5 text-sm font-semibold text-foreground">Patient Volume</h2>
@@ -170,7 +170,7 @@ export default function AnalyticsClient({ initialData }: { initialData: DoctorAn
           {initialData.appointmentTypes.length === 0 ? (
             <div className="flex h-44 items-center justify-center text-sm text-muted-foreground">No data yet</div>
           ) : (
-            <div className="flex items-center gap-4 p-5">
+            <div className="flex flex-col items-center gap-4 p-5 sm:flex-row sm:items-center">
               <div className="h-32 w-32 shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -236,9 +236,9 @@ export default function AnalyticsClient({ initialData }: { initialData: DoctorAn
                 const pct = condTotal > 0 ? Math.round((item.count / condTotal) * 100) : 0;
                 return (
                   <div key={i}>
-                    <div className="mb-1.5 flex items-center justify-between text-xs">
-                      <span className="font-medium text-foreground">{item.condition}</span>
-                      <span className="tabular-nums text-muted-foreground">{item.count} patients · {pct}%</span>
+                    <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                      <span className="min-w-0 truncate font-medium text-foreground">{item.condition}</span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">{item.count} patients · {pct}%</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-muted/40">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: CONDITION_COLORS[i] ?? "#94A3B8" }} />
