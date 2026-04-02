@@ -34,7 +34,7 @@ export default function TwoCardSection() {
                 letterSpacing: "0.01em",
               }}
             >
-              Two ways to get care with Dr. Jack.
+              Two ways to get care with Dr. Emily.
             </p>
           </div>
         </ScrollReveal>

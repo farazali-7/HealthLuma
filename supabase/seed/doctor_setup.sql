@@ -1,12 +1,12 @@
 -- ============================================================
 -- HealthLuma — Doctor Setup Seed
--- Run ONCE after you have created Dr. Jack's account via Supabase Auth.
+-- Run ONCE after you have created Dr. Emily's account via Supabase Auth.
 --
 -- Steps:
---   1. Sign up at /signup with any email (e.g. dr.jack@healthluma.com).
+--   1. Sign up at /signup with any email (e.g. dr.emily@healthluma.com).
 --      The trigger creates a public.users row with role='patient'.
 --   2. Paste this file into the Supabase SQL Editor and run it.
---      Replace 'dr.jack@healthluma.com' with the actual email you used.
+--      Replace 'dr.emily@healthluma.com' with the actual email you used.
 -- ============================================================
 
 
@@ -14,8 +14,8 @@
 UPDATE public.users
 SET
   role      = 'doctor',
-  full_name = 'Dr. Jack Wilson'
-WHERE email = 'dr.jack@healthluma.com';   -- ← change to actual email
+  full_name = 'Dr. Emily Carter'
+WHERE email = 'dr.emily@healthluma.com';   -- ← change to actual email
 
 
 -- ── Step 2: Add weekly availability ──────────────────────────
@@ -34,7 +34,7 @@ SELECT
   true
 FROM public.users u,
      unnest(ARRAY[1, 2, 3, 4, 5, 6]) AS day_num   -- Mon=1 … Sat=6
-WHERE u.email = 'dr.jack@healthluma.com'           -- ← same email as above
+WHERE u.email = 'dr.emily@healthluma.com'           -- ← same email as above
 ON CONFLICT (doctor_id, day_of_week) DO NOTHING;
 
 

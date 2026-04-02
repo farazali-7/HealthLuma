@@ -128,7 +128,7 @@ export default function HeroSection() {
                 }}
               >
                 Private Family Practice ·{" "}
-                <span style={{ color: "#162920", fontWeight: "600" }}>Dr. Jack Harrison</span>
+                <span style={{ color: "#162920", fontWeight: "600" }}>Dr. Emily Carter</span>
               </span>
             </div>
 

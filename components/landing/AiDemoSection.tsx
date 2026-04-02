@@ -35,14 +35,14 @@ function getCannedReply(input: string): Message {
   if (q.match(/headache|migraine|head pain|head ache/)) {
     return {
       role: "ai",
-      text: "Persistent headaches should be properly assessed. I'd suggest booking a General Consultation with Dr. Jack. Next available slot is tomorrow at 9:00 AM.",
+      text: "Persistent headaches should be properly assessed. I'd suggest booking a General Consultation with Dr. Emily. Next available slot is tomorrow at 9:00 AM.",
       cta: { label: "Book General Consultation — $100", badge: "Today" },
     };
   }
   if (q.match(/chest|heart|tight|breathing|breath/)) {
     return {
       role: "ai",
-      text: "Chest discomfort or breathing difficulty should be assessed promptly. I recommend our Urgent Consultation. Dr. Jack has an opening today at 3:30 PM — would you like me to reserve it?",
+      text: "Chest discomfort or breathing difficulty should be assessed promptly. I recommend our Urgent Consultation. Dr. Emily has an opening today at 3:30 PM — would you like me to reserve it?",
       cta: { label: "Book Urgent Slot — $100", badge: "Urgent" },
     };
   }
@@ -82,7 +82,7 @@ function getCannedReply(input: string): Message {
   }
   return {
     role: "ai",
-    text: "Thanks for reaching out. Based on what you've described, I'd recommend booking a General Consultation with Dr. Jack. He'll be able to assess your situation properly. Next available slot is tomorrow morning.",
+    text: "Thanks for reaching out. Based on what you've described, I'd recommend booking a General Consultation with Dr. Emily. She'll be able to assess your situation properly. Next available slot is tomorrow morning.",
     cta: { label: "Book General Consultation — $100", badge: "Tomorrow" },
   };
 }

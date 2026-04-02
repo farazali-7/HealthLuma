@@ -431,7 +431,7 @@ function ProfileTab({
         <div className="border-b border-border/60 px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">Medical Profile</h2>
           <p className="text-xs text-muted-foreground">
-            Shared with Dr. Jack to personalise your care
+            Shared with Dr. Emily to personalise your care
           </p>
         </div>
 
@@ -477,7 +477,7 @@ function ProfileTab({
             label="Current medications (outside prescriptions)"
             value={form.other_medications}
             onChange={(v) => set("other_medications", v)}
-            placeholder="Any supplements or OTC medications Dr. Jack should know about"
+            placeholder="Any supplements or OTC medications Dr. Emily should know about"
             disabled={!isEditing}
           />
         </div>

@@ -104,7 +104,7 @@ function AppointmentBackground() {
                 </div>
                 <div>
                   <div style={{ fontFamily: "var(--font-playfair)", fontSize: "15px", fontWeight: "700", color: "#0F2218" }}>
-                    Dr. Ahmad Raza
+                    Dr. Emily Carter
                   </div>
                   <div style={{ fontSize: "12px", color: "#6B8A7F", fontFamily: "var(--font-dm-sans)", marginTop: "2px" }}>
                     General Practitioner
@@ -254,7 +254,7 @@ function AppointmentBackground() {
                 Summary
               </div>
               {[
-                ["Doctor", "Dr. Ahmad Raza"],
+                ["Doctor", "Dr. Emily Carter"],
                 ["Service", "General Consultation"],
                 ["Date", "Wednesday, March 12"],
                 ["Time", "10:00 AM"],

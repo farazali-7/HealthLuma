@@ -83,7 +83,7 @@ export default function Footer() {
                 marginBottom: "6px",
               }}
             >
-              Need to see Dr. Jack?
+              Need to see Dr. Emily?
             </div>
             <p
               style={{

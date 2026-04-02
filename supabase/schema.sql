@@ -657,7 +657,7 @@ CREATE POLICY "notifications: own"
 
 /*
 
--- Default weekly availability for Dr. Jack
+-- Default weekly availability for Dr. Emily Carter
 -- Mon–Fri: 9am–12pm and 2pm–5pm (30-min slots)
 -- Saturday: 9am–12pm only
 -- Sunday: closed

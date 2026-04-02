@@ -9,7 +9,7 @@ const SERVICES = [
       {
         name: "General Consultation",
         description:
-          "Comprehensive assessment for new symptoms, ongoing conditions, referrals, and general health concerns. Dr. Jack reviews your history and provides a clear care plan.",
+          "Comprehensive assessment for new symptoms, ongoing conditions, referrals, and general health concerns. Dr. Emily reviews your history and provides a clear care plan.",
         duration: "30 min",
         price: "$100",
         icon: (
@@ -79,7 +79,7 @@ const SERVICES = [
 const STEPS = [
   { step: "1", title: "Book online", detail: "Choose your service, pick a slot, and confirm your booking in under 2 minutes." },
   { step: "2", title: "AI intake", detail: "Our health assistant gathers your symptoms and history before the visit so the consultation is efficient." },
-  { step: "3", title: "See Dr. Jack", detail: "Video or in-person consultation. Dr. Jack arrives fully prepared with your intake summary." },
+  { step: "3", title: "See Dr. Emily", detail: "Video or in-person consultation. Dr. Emily arrives fully prepared with your intake summary." },
   { step: "4", title: "Care plan", detail: "Receive a digital prescription, referral, or care plan within 24 hours of your visit." },
 ];
 

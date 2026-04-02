@@ -183,7 +183,7 @@ export default function AiAssistantPage() {
         </svg>
         <p className="text-[11px] text-muted-foreground">
           Responses are informational only and do not constitute medical advice.
-          Always consult Dr. Jack for clinical decisions.
+          Always consult Dr. Emily for clinical decisions.
         </p>
       </div>
 

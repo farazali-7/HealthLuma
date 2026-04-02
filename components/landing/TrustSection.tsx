@@ -17,7 +17,7 @@ const PRINCIPLES = [
     number: "03",
     title: "AI assists, the doctor decides",
     description:
-      "Our AI helps you prepare. It never diagnoses. It never prescribes. Dr. Jack does that part.",
+      "Our AI helps you prepare. It never diagnoses. It never prescribes. Dr. Emily does that part.",
   },
   {
     number: "04",
@@ -58,7 +58,7 @@ export default function TrustSection() {
                   marginBottom: "28px",
                 }}
               >
-                Dr. Jack&apos;s Approach
+                Dr. Emily&apos;s Approach
                 <br />
                 to Care
               </h2>
@@ -97,7 +97,7 @@ export default function TrustSection() {
                   }}
                 >
                   <span style={{ color: "#162920", fontWeight: "600" }}>
-                    Dr. Jack Harrison
+                    Dr. Emily Carter
                   </span>{" "}
                   has spent 15 years in family medicine. He&apos;s seen
                   firsthand how much time patients waste on scheduling,
@@ -170,7 +170,7 @@ export default function TrustSection() {
                       fontWeight: "600",
                     }}
                   >
-                    Dr. Jack Harrison
+                    Dr. Emily Carter
                   </div>
                   <div
                     style={{

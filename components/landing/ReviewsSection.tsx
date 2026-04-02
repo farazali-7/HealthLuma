@@ -93,7 +93,7 @@ const REVIEWS = [
     date: "Mar 2026",
     stars: 5,
     dark: false,
-    quote: "Same-week slot, clear pricing upfront, and Dr. Jack remembered every detail from our previous visit. I didn't have to repeat myself once.",
+    quote: "Same-week slot, clear pricing upfront, and Dr. Emily remembered every detail from our previous visit. I didn't have to repeat myself once.",
   },
   {
     id: "priya",

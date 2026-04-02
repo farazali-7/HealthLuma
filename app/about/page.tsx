@@ -16,7 +16,7 @@ const VALUES = [
   {
     number: "03",
     title: "AI assists. The doctor decides.",
-    body: "Our AI handles intake, triage guidance, and visit prep. Dr. Jack handles diagnosis, prescription, and care. Clearly delineated, always.",
+    body: "Our AI handles intake, triage guidance, and visit prep. Dr. Emily handles diagnosis, prescription, and care. Clearly delineated, always.",
   },
   {
     number: "04",
@@ -213,7 +213,7 @@ export default function AboutPage() {
                     </div>
                     <div>
                       <div style={{ fontFamily: "var(--font-dm-sans)", fontWeight: "600", fontSize: "14px", color: "#162920" }}>
-                        Dr. Jack Harrison
+                        Dr. Emily Carter
                       </div>
                       <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#7C9488", marginTop: "2px" }}>
                         Founder &amp; Family Physician
@@ -318,7 +318,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ── Dr. Jack — full bio ───────────────────── */}
+        {/* ── Dr. Emily — full bio ───────────────────── */}
         <section
           style={{
             background: "#F8FAF8",
@@ -353,20 +353,20 @@ export default function AboutPage() {
                       marginBottom: "28px",
                     }}
                   >
-                    Dr. Jack Harrison,
+                    Dr. Emily Carter,
                     <br />
                     <span style={{ color: "#1A5C44" }}>MD CCFP</span>
                   </h2>
 
                   <p style={{ color: "#476355", fontSize: "15px", fontFamily: "var(--font-dm-sans)", lineHeight: "1.75", marginBottom: "20px" }}>
-                    Dr. Jack completed his medical degree at the University of
+                    Dr. Emily completed her medical degree at the University of
                     Toronto and has since spent 15 years in family medicine,
                     building long-term relationships with patients across all
                     stages of life.
                   </p>
                   <p style={{ color: "#476355", fontSize: "15px", fontFamily: "var(--font-dm-sans)", lineHeight: "1.75", marginBottom: "32px" }}>
-                    He built HealthLuma after recognising that the most common
-                    barrier to care wasn&apos;t cost — it was friction. His
+                    She built HealthLuma after recognising that the most common
+                    barrier to care wasn&apos;t cost — it was friction. Her
                     practice now runs entirely online, with same-week
                     appointments and a care model that treats your time as
                     seriously as your health.
@@ -508,7 +508,7 @@ export default function AboutPage() {
                   marginBottom: "16px",
                 }}
               >
-                Ready to meet Dr. Jack?
+                Ready to meet Dr. Emily?
               </h2>
               <p
                 style={{
